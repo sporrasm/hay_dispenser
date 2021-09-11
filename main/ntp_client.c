@@ -130,7 +130,6 @@ time_t get_time()
 
     packet.txTm_s = ntohl( packet.txTm_s ); // Time-stamp seconds.
     packet.txTm_f = ntohl( packet.txTm_f ); // Time-stamp fraction of a second.
-    printf("Time in seconds %d\n", packet.txTm_s);
     // Extract the 32 bits that represent the time-stamp seconds (since NTP epoch) from when the packet left the server.
     // Subtract 70 years worth of seconds from the seconds since 1900.
     // This leaves the seconds since the UNIX epoch of 1970.
