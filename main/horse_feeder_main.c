@@ -6,8 +6,19 @@
 #include "esp_log.h"
 #include "wifi_connect.h"
 #include "ntp_client.h"
+#include "esp_sntp.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include <driver/i2c.h>
+#include "AIP31068L.h"
+
+#define LCD_ADDR 0x3e
+#define SDA_PIN  19
+#define SCL_PIN  18
+#define LCD_COLS 16 
+#define LCD_ROWS 2
+
+void LCD_updater(void* param);
 
 static const char* TAG="MAIN";
 
@@ -44,13 +55,24 @@ int init_horse_feeder(void) {
   }
 }
 
+void init_LCD() {
+  ESP_LOGI(TAG, "Starting up LCD");
+  LCD_quick_init(LCD_ADDR, SDA_PIN, SCL_PIN, LCD_COLS, LCD_ROWS);
+  LCD_clearScreen();
+  LCD_home();
+  LCD_writeStr("HorseFeeder 3000");
+  LCD_setCursor(0, 1);
+  LCD_writeStr("Initializing ...");
+}
 
 void app_main(void)
 {
+    char txtBuf[16];
     int init_stat=init_horse_feeder();
     if (init_stat != 0) {
       ESP_LOGW(TAG, "Initialization failed!");
     }
+    init_LCD();
     int wifi_conn_stat=0;
     printf("Initializing WiFi\n");
     wifi_conn_stat=conn_wifi();
@@ -62,15 +84,44 @@ void app_main(void)
     else {
         printf("Connected to WiFi\n");
         printf("Getting current time\n");
-        time_t time = get_time();
-        ESP_LOGI(TAG, "Setting system time to %s", ctime(&time));
-        struct timeval tv, currtv;
-        tv.tv_sec=time;
+        //sntp_setoperatingmode(SNTP_OPMODE_POLL);
+        //sntp_setservername(0, "pool.ntp.org");
+        //sntp_init();
+        time_t currtime = get_time();
+        ESP_LOGI(TAG, "Setting system time to %s", ctime(&currtime));
+        struct timeval tv;
+        tv.tv_sec=currtime;
         settimeofday(&tv, NULL);
-        while (1) {
-          gettimeofday(&currtv, NULL);
-          printf("Current time is %s", ctime(&currtv.tv_sec));
-          vTaskDelay(5000/portTICK_PERIOD_MS);
-        }
+        LCD_home();
+        LCD_clearScreen();
+        LCD_writeStr("PonyFeeder 3000");
+        LCD_setCursor(0, 1);
+        xTaskCreate(&LCD_updater, "LCD_updater", 2048, NULL, 5, NULL);
+        //while (1) {
+        //  vTaskDelay(10000 / portTICK_RATE_MS);
+        //  //struct timeval curr;
+        //  time_t now = time(NULL);
+        //  struct tm timeinfo;
+        //  localtime_r(&now, &timeinfo);
+        //  printf("Time with localtime() %02d:%02d:%02d\n",timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+        //  sprintf(txtBuf, "TIME: %02d:%02d", timeinfo.tm_hour, timeinfo.tm_min);
+        //  LCD_writeStr(txtBuf);
+        //  LCD_setCursor(0, 1);
+        //}
     }
+}
+
+void LCD_updater(void* param)
+{
+    char txtBuf[16];
+    while (1) {
+          time_t now = time(NULL);
+          struct tm timeinfo;
+          localtime_r(&now, &timeinfo);
+          printf("Time with localtime() %02d:%02d:%02d\n",timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+          sprintf(txtBuf, "TIME: %02d:%02d", timeinfo.tm_hour, timeinfo.tm_min);
+          LCD_writeStr(txtBuf);
+          LCD_setCursor(0, 1);
+          vTaskDelay(10000 / portTICK_RATE_MS);
+        }
 }
