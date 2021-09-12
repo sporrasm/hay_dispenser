@@ -1,4 +1,5 @@
 build/
+wifi_info.txt
 sdkconfig
 sdkconfig.old
 *~
