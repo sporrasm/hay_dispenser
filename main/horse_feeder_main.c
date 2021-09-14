@@ -16,10 +16,10 @@
 #define SDA_PIN  19
 #define SCL_PIN  18
 #define LCD_COLS 16 
-#define LCD_ROWS 2
+#define LCD_ROWS
 
 void LCD_updater(void* param);
-void timeFromString();
+time_t* timeFromString();
 
 static const char* TAG="MAIN";
 
@@ -68,7 +68,7 @@ void init_LCD() {
 
 void app_main(void)
 {
-    char txtBuf[16];
+    char* times[6] = {"09:00", "12:00", "15:00", "18:00", "21:00", "00:00"};
     int init_stat=init_horse_feeder();
     if (init_stat != 0) {
       ESP_LOGW(TAG, "Initialization failed!");
@@ -89,61 +89,55 @@ void app_main(void)
         struct timeval tv;
         tv.tv_sec=currtime;
         settimeofday(&tv, NULL);
+        // Apparently thse need be called before calling time() in a task
+        struct tm curr_t;
+        time_t now=time(NULL);
+        if (localtime_r(&now, &curr_t) == NULL)
+          printf("localtime_r failed!\n");
+        // Init LCD, start task to update time
         LCD_home();
         LCD_clearScreen();
         LCD_writeStr("PonyFeeder 3000");
         LCD_setCursor(0, 1);
-        const char times[] = "Mon Sep 13 10:00:00 2021";
         xTaskCreate(&LCD_updater, "LCD_updater", 2048, NULL, 5, NULL);
         while (1) {
-          timeFromString();
-          vTaskDelay(2000 / portTICK_RATE_MS);
+          time_t* arr = timeFromString();
+          vTaskDelay(5000 / portTICK_RATE_MS);
         }
-        //  vTaskDelay(10000 / portTICK_RATE_MS);
-        //  //struct timeval curr;
-        //  time_t now = time(NULL);
-        //  struct tm timeinfo;
-        //  localtime_r(&now, &timeinfo);
-        //  printf("Time with localtime() %02d:%02d:%02d\n",timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
-        //  sprintf(txtBuf, "TIME: %02d:%02d", timeinfo.tm_hour, timeinfo.tm_min);
-        //  LCD_writeStr(txtBuf);
-        //  LCD_setCursor(0, 1);
-        //}
     }
 }
 
-void timeFromString() {
-    char* times[] = {"10:00", "12:00"};
+time_t* timeFromString() {
+    char* times[] = {"23:00", "00:00"};
+    time_t time_arr[6] = { 0 }; // Array for storing outputs in ctime
     struct tm currtime,desttime;
-    memset(&desttime, 0, sizeof(struct tm));
     memset(&currtime, 0, sizeof(struct tm));
     time_t now = time(NULL);
     if (localtime_r(&now, &currtime) == NULL) {
       printf("localtime_r failed\n");
-      return;
+      return NULL;
     }
     // Process strings 
     //char* datebuf=malloc(sizeof(char)*16);
-    char datebuf[80];
+    char datebuf[80] = { 0 };
     for (int i=0; i<sizeof(times) / sizeof(times[0]); i++) {
-      //memset(datebuf, 0, sizeof(*datebuf));
-      sprintf(datebuf, "%04d %02d %02d %s", currtime.tm_year+1900, currtime.tm_mon+1, currtime.tm_mday, times[i] );
+      memset(&desttime, 0, sizeof(struct tm));
+      sprintf(datebuf, "%04d %02d %02d %s", currtime.tm_year+1900,
+              currtime.tm_mon+1, currtime.tm_mday,
+              times[i]);
       printf("Time set: %s\n", datebuf);
-      if (strptime(datebuf, "%Y %m %d %H:%M", &desttime) == NULL)
+      if (strptime(datebuf, "%Y %m %d %H:%M ", &desttime) == NULL) {
         printf("Strptime failed!\n");
-      time_t ptr = mktime(&desttime);
-      printf("Time: %s\n", ctime(&ptr));
+        return NULL;
+      }
+      else {
+        desttime.tm_isdst=currtime.tm_isdst;
+        time_t tstamp = mktime(&desttime);
+        printf("Time: %s\n", ctime(tstamp));
+        time_arr[0]=tstamp;
+      }
     }
-    //printf("Time set: %s\n", times);
-    //if (strptime(times, "%a %b %d %H:%M:%S %Y", &time) == NULL)
-    //  printf("Strptime failed!\n");
-    //printf("tm_sec %d\n", time.tm_sec);
-    //printf("tm_min %d\n", time.tm_min);
-    //printf("tm_hour %d\n", time.tm_hour);
-    //printf("tm_mday %d\n", time.tm_mday);
-    //printf("tm_year %d\n", time.tm_year);
-  //char *times[] = {"10:00", "12:00", "13:00", NULL};
-//  }
+    return time_arr;
 }
 
 //void activateFeeder(void* param) {
