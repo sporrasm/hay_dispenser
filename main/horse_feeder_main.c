@@ -6,7 +6,6 @@
 #include "esp_log.h"
 #include "wifi_connect.h"
 #include "ntp_client.h"
-#include "esp_sntp.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include <driver/i2c.h>
@@ -16,10 +15,10 @@
 #define SDA_PIN  19
 #define SCL_PIN  18
 #define LCD_COLS 16 
-#define LCD_ROWS
+#define LCD_ROWS 2
 
 void LCD_updater(void* param);
-time_t* timeFromString();
+time_t* timeFromString(char** times, unsigned int len);
 
 static const char* TAG="MAIN";
 
@@ -66,89 +65,103 @@ void init_LCD() {
   LCD_writeStr("Initializing ...");
 }
 
-void app_main(void)
-{
-    char* times[6] = {"09:00", "12:00", "15:00", "18:00", "21:00", "00:00"};
-    int init_stat=init_horse_feeder();
-    if (init_stat != 0) {
-      ESP_LOGW(TAG, "Initialization failed!");
-    }
-    init_LCD();
-    int wifi_conn_stat=0;
-    printf("Initializing WiFi\n");
-    wifi_conn_stat=conn_wifi();
-    if (wifi_conn_stat != 0) {
-        printf("Connection failed!\n");
-        printf("Please restart uC!\n");
-    }   
-    else {
-        printf("Connected to WiFi\n");
-        printf("Getting current time\n");
-        time_t currtime = get_time();
-        ESP_LOGI(TAG, "Setting system time to %s", ctime(&currtime));
-        struct timeval tv;
-        tv.tv_sec=currtime;
-        settimeofday(&tv, NULL);
-        // Apparently thse need be called before calling time() in a task
-        struct tm curr_t;
-        time_t now=time(NULL);
-        if (localtime_r(&now, &curr_t) == NULL)
-          printf("localtime_r failed!\n");
-        // Init LCD, start task to update time
-        LCD_home();
-        LCD_clearScreen();
-        LCD_writeStr("PonyFeeder 3000");
-        LCD_setCursor(0, 1);
-        xTaskCreate(&LCD_updater, "LCD_updater", 2048, NULL, 5, NULL);
-        while (1) {
-          time_t* arr = timeFromString();
-          vTaskDelay(5000 / portTICK_RATE_MS);
-        }
-    }
-}
-
-time_t* timeFromString() {
-    char* times[] = {"23:00", "00:00"};
-    time_t time_arr[6] = { 0 }; // Array for storing outputs in ctime
-    struct tm currtime,desttime;
-    memset(&currtime, 0, sizeof(struct tm));
-    time_t now = time(NULL);
-    if (localtime_r(&now, &currtime) == NULL) {
-      printf("localtime_r failed\n");
-      return NULL;
-    }
-    // Process strings 
-    //char* datebuf=malloc(sizeof(char)*16);
-    char datebuf[80] = { 0 };
-    for (int i=0; i<sizeof(times) / sizeof(times[0]); i++) {
-      memset(&desttime, 0, sizeof(struct tm));
-      sprintf(datebuf, "%04d %02d %02d %s", currtime.tm_year+1900,
-              currtime.tm_mon+1, currtime.tm_mday,
-              times[i]);
-      printf("Time set: %s\n", datebuf);
-      if (strptime(datebuf, "%Y %m %d %H:%M ", &desttime) == NULL) {
-        printf("Strptime failed!\n");
-        return NULL;
+time_t* timeFromString(char** times, unsigned int len) {
+  time_t* time_arr = malloc((len+1)*sizeof(time_t));; // Array for storing output times (+1 for null)
+  const char* TAG_TFS = "TimeFromString";
+  char datebuf[30] = { '\0' };
+  if (time_arr==NULL) {
+    ESP_LOGW(TAG_TFS,"Malloc failed");
+    return NULL;
+  }
+  struct tm currtime,desttime;
+  memset(time_arr, 0, (len+1)*sizeof(time_t));
+  memset(&currtime, 0, sizeof(struct tm));
+  time_t now = time(NULL);
+  if (localtime_r(&now, &currtime) == NULL) {
+    ESP_LOGW(TAG_TFS,"localtime_r failed");
+    return NULL;
+  }
+  // Process strings 
+  ESP_LOGI(TAG_TFS, "%d", len);
+  for (int i=0; i<len+1; i++) {
+      if (i == len) {
+        time_arr[i]=0;
       }
       else {
-        desttime.tm_isdst=currtime.tm_isdst;
-        time_t tstamp = mktime(&desttime);
-        printf("Time: %s\n", ctime(tstamp));
-        time_arr[0]=tstamp;
+        memset(&desttime, 0, sizeof(struct tm));
+        int ret = sprintf(datebuf, "%04d %02d %02d %s", currtime.tm_year+1900,
+                currtime.tm_mon+1, currtime.tm_mday,
+                times[i]);
+        ESP_LOGI(TAG_TFS, "%s", datebuf);
+        ESP_LOGI(TAG_TFS, "%s", times[i]);
+        if (ret != strlen(datebuf)) {
+          ESP_LOGW(TAG_TFS,"sprintf failed");
+        }
+        if (strptime(datebuf, "%Y %m %d %H:%M ", &desttime) == NULL) {
+          ESP_LOGW(TAG_TFS,"strptime failed");
+        }
+        if (strptime(times[i], "%H:%M", &desttime) == NULL) {
+          ESP_LOGW(TAG_TFS,"strptime failed");
+        }
+        else {
+          desttime.tm_isdst=currtime.tm_isdst;
+          if (!(strncmp(times[i],"00:00", 5))) {
+            desttime.tm_mday++;
+          }
+          time_t tstamp = mktime(&desttime);
+          double diff = difftime(tstamp, now);
+          printf("Tstamp: %s", ctime(&tstamp));
+          printf("Tnow: %s", ctime(&now));
+          printf("%.2f\n", diff);
+          if (diff < 0) {
+            desttime.tm_mday++;
+            tstamp = mktime(&desttime);
+          }
+          time_arr[i]=tstamp;
+        }
       }
-    }
-    return time_arr;
+  }
+  return time_arr;
 }
 
-//void activateFeeder(void* param) {
-//  time_t now = time(NULL);
-//  double seconds = difftime(now, mktime()
-//
-//  //while (1) {
-//  //xEventGroupWaitBits(eg,   
-//
-//  //}
-//}
+void app_main(void)
+{
+  // The parameter to strptime must given as hour (0-23) and
+  char* times[6] = {"09:00", "12:00", "15:00", "18:00", "21:00", "00:00"};
+  int init_stat=init_horse_feeder();
+  if (init_stat != 0) {
+    ESP_LOGW(TAG, "Initialization failed!");
+  }
+  init_LCD();
+  int wifi_conn_stat=0;
+  printf("Initializing WiFi\n");
+  wifi_conn_stat=conn_wifi();
+  if (wifi_conn_stat != 0) {
+    ESP_LOGW(TAG, "Connection failed!");
+  }   
+  else {
+    printf("Connected to WiFi\n");
+    printf("Getting current time\n");
+    time_t currtime = get_time();
+    ESP_LOGI(TAG, "Setting system time to %s", ctime(&currtime));
+    struct timeval tv;
+    memset(&tv, 0, sizeof(tv)); // Initialize
+    tv.tv_sec=currtime;
+    settimeofday(&tv, NULL);
+    time_t* arr=timeFromString(times, sizeof(times) / sizeof(times[0]));
+    
+    // Init LCD, start task to update time
+    LCD_home();
+    LCD_clearScreen();
+    LCD_writeStr("PonyFeeder 3000");
+    LCD_setCursor(0, 1);
+    xTaskCreate(&LCD_updater, "LCD_updater", 2048, NULL, 5, NULL);
+    for (time_t* i=arr; *i; i++) {
+      printf("%s", ctime(i)); 
+      printf("%ld\n", *i); 
+    }
+  }
+}
 
 void LCD_updater(void* param)
 {
