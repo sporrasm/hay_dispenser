@@ -8,9 +8,12 @@
 #include "ntp_client.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "driver/timer.h"
 #include <driver/i2c.h>
 #include "AIP31068L.h"
 
+#define TIMER_DIVIDER 16
+#define TIMER_SCALE (TIMER_BASE_CLK / TIMER_DIVIDER)
 #define LCD_ADDR 0x3e
 #define SDA_PIN  19
 #define SCL_PIN  18
@@ -19,6 +22,7 @@
 
 void LCD_updater(void* param);
 time_t* timeFromString(char** times, unsigned int len);
+static void ini_timer(int group, int timer, int auto_reload, int time_interval);
 
 static const char* TAG="MAIN";
 
@@ -123,11 +127,22 @@ time_t* timeFromString(char** times, unsigned int len) {
   }
   return time_arr;
 }
-
+static void ini_timer(int group, int timer, int auto_reload, int time_interval) {
+  /*
+      This function is used to initialize a hardware timer. The timer will
+      trigger an interrupt, which in turn will trigger the next lock to
+      be pulsed and dispense the hay.
+  */
+  timer_config_t config = {
+    .divider = TIMER_DIVIDER,
+  };
+}
+  
 void app_main(void)
 {
   // The parameter to strptime must given as hour (0-23) and
   char* times[6] = {"09:00", "12:00", "15:00", "18:00", "21:00", "00:00"};
+  char buf[6] = { 0 };
   int init_stat=init_horse_feeder();
   if (init_stat != 0) {
     ESP_LOGW(TAG, "Initialization failed!");
@@ -155,25 +170,47 @@ void app_main(void)
     LCD_clearScreen();
     LCD_writeStr("PonyFeeder 3000");
     LCD_setCursor(0, 1);
-    xTaskCreate(&LCD_updater, "LCD_updater", 2048, NULL, 5, NULL);
-    for (time_t* i=arr; *i; i++) {
-      printf("%s", ctime(i)); 
-      printf("%ld\n", *i); 
+    if (strftime(buf, 6, "%H:%M", localtime(&currtime))!=0) {
+      LCD_writeStr("TIME: ");
+      LCD_setCursor(6, 1);
+      LCD_writeStr(buf);
     }
+    int* sec_tupdate = pvPortMalloc(sizeof(int));
+    *sec_tupdate = 60 - (currtime - (currtime / 60)*60);
+    xTaskCreate(&LCD_updater, "LCD_updater", 2048, sec_tupdate, 5, NULL);
+    //for (time_t* i=arr; *i; i++) {
+    //  printf("%s", ctime(i)); 
+    //  printf("%ld\n", *i); 
+    //}
   }
 }
 
+void pulseLock(void* param) {
+  /*
+    This task sends 
+  */
+}
+
 void LCD_updater(void* param)
+/*
+   This task should run every 60 seconds or so
+   to update the time reading on the LCD screen
+*/
 {
     char txtBuf[16];
+    int* sec_tupdate=(int *) param;
+    TickType_t xLastWakeTime;
+    const TickType_t xFreq = pdMS_TO_TICKS(60000);
+    xLastWakeTime = xTaskGetTickCount();
+    //ESP_LOGI(TAG, "Waiting %d seconds to sync with clock.", *sec_tupdate);
+    vTaskDelay(pdMS_TO_TICKS(*(sec_tupdate)*1000));
     while (1) {
-          time_t now = time(NULL);
-          struct tm timeinfo;
-          localtime_r(&now, &timeinfo);
-          //printf("Time with localtime() %02d:%02d:%02d\n",timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
-          sprintf(txtBuf, "TIME: %02d:%02d", timeinfo.tm_hour, timeinfo.tm_min);
-          LCD_writeStr(txtBuf);
-          LCD_setCursor(0, 1);
-          vTaskDelay(10000 / portTICK_RATE_MS);
-        }
+      vTaskDelayUntil(&xLastWakeTime, xFreq);
+      LCD_setCursor(0, 1);
+      time_t now = time(NULL);
+      struct tm timeinfo;
+      localtime_r(&now, &timeinfo);
+      sprintf(txtBuf, "TIME: %02d:%02d", timeinfo.tm_hour, timeinfo.tm_min);
+      LCD_writeStr(txtBuf);
+    }
 }
