@@ -21,10 +21,25 @@
 #define LCD_ROWS 2
 
 void LCD_updater(void* param);
+void pulseLock(void* param);
 time_t* timeFromString(char** times, unsigned int len);
-static void ini_timer(int group, int timer, int auto_reload, int time_interval);
+static void ini_timer(int group, int timer, int time_interval);
+static xQueueHandle timer_queue;
+SemaphoreHandle_t s_timer_semaphore;
 
 static const char* TAG="MAIN";
+
+typedef struct {
+    int timer_group;
+    int timer_idx;
+    int alarm_interval;
+} timer_info;
+
+
+typedef struct {
+    int timer_group;
+    int timer_idx;
+} timer_event;
 
 int set_tz(const char* targ_tz){
   int ret=setenv("TZ", targ_tz, 1);
@@ -127,15 +142,117 @@ time_t* timeFromString(char** times, unsigned int len) {
   }
   return time_arr;
 }
-static void ini_timer(int group, int timer, int auto_reload, int time_interval) {
+
+void IRAM_ATTR timer_group0_isr(void *arg)
+{
+    int need_yield;
+
+    int timer_idx = (int) arg;
+
+    /* Retrieve the interrupt status and the counter value from the timer that reported the interrupt */
+    uint32_t intr_status = TIMERG0.int_st_timers.val;
+    TIMERG0.hw_timer[timer_idx].update = 1;
+
+    /* Clear the interrupt (either Timer 0 or 1, whichever caused this interrupt */
+    if ((intr_status & BIT(timer_idx)) && timer_idx == TIMER_0) {
+        TIMERG0.int_clr_timers.t0 = 1;
+    } else if ((intr_status & BIT(timer_idx)) && timer_idx == TIMER_1) {
+        TIMERG0.int_clr_timers.t1 = 1;
+    }
+
+    /* After the alarm has been triggered we need enable it again, so it is triggered the next time */
+    //TIMERG0.hw_timer[timer_idx].config.alarm_en = TIMER_ALARM_DIS;
+
+    // Give a semaphore to the Simulink task, so that it wakes up and executes 1 loop
+    if (xSemaphoreGiveFromISR(s_timer_semaphore, &need_yield) != pdPASS)
+    {
+        ESP_EARLY_LOGD("timer_group0_isr", "timer queue overflow!");
+
+    	return;
+    }
+
+    if (need_yield == pdTRUE)
+    {
+        portYIELD_FROM_ISR();
+    }
+
+}
+
+void IRAM_ATTR timer_group1_isr(void *arg)
+{
+    int need_yield;
+
+    int timer_idx = (int) arg;
+
+    /* Retrieve the interrupt status and the counter value from the timer that reported the interrupt */
+    uint32_t intr_status = TIMERG0.int_st_timers.val;
+    TIMERG0.hw_timer[timer_idx].update = 1;
+
+    /* Clear the interrupt (either Timer 0 or 1, whichever caused this interrupt */
+    if ((intr_status & BIT(timer_idx)) && timer_idx == TIMER_0) {
+        TIMERG0.int_clr_timers.t0 = 1;
+    } else if ((intr_status & BIT(timer_idx)) && timer_idx == TIMER_1) {
+        TIMERG0.int_clr_timers.t1 = 1;
+    }
+
+    // Try to give a semaphore to the pulseLock task 
+    if (xSemaphoreGiveFromISR(s_timer_semaphore, &need_yield) != pdPASS)
+    {
+        ESP_EARLY_LOGD("timer_group0_isr", "timer queue overflow!");
+
+    	return;
+    }
+
+    if (need_yield == pdTRUE)
+    {
+        portYIELD_FROM_ISR();
+    }
+
+}
+  
+
+static void ini_timer(int group, int timer, int time_interval) {
   /*
       This function is used to initialize a hardware timer. The timer will
       trigger an interrupt, which in turn will trigger the next lock to
       be pulsed and dispense the hay.
+
+      Parameters:
+      int group:
+        Timer group, either 0 or 1
+      int timer
+        Timer index, either 0 or 1
+      int time_interval 
+        Time until alarm sets off (in seconds)
+
   */
+
+  // Initialize timer struct, contants defined in hal/include/hal/timer_types.h
   timer_config_t config = {
     .divider = TIMER_DIVIDER,
+    .alarm_en = TIMER_ALARM_EN,
+    .counter_en = TIMER_PAUSE,
+    .counter_dir = TIMER_COUNT_UP,
+    .auto_reload = TIMER_AUTORELOAD_DIS,
+    .intr_type = TIMER_INTR_LEVEL, // Note, mandatory in alarm mode
   };
+  ESP_ERROR_CHECK(timer_init(group, timer, &config));
+  ESP_ERROR_CHECK(timer_set_counter_value(group, timer, 0x00000000ULL));
+  int timer_value = time_interval*TIMER_SCALE;
+  ESP_ERROR_CHECK(timer_set_alarm_value(group, timer, timer_value));
+  ESP_ERROR_CHECK(timer_enable_intr(group, timer));
+
+  if (!group) {
+    ESP_ERROR_CHECK(timer_isr_register(TIMER_GROUP_0, timer, timer_group0_isr,
+        (void *) timer, ESP_INTR_FLAG_IRAM, NULL));
+  }
+  else {
+    ESP_ERROR_CHECK(timer_isr_register(TIMER_GROUP_1, timer, timer_group1_isr,
+        (void *) timer, ESP_INTR_FLAG_IRAM, NULL));
+  }
+  //ESP_ERROR_CHECK(timer_pause(group, timer));
+  //ESP_ERROR_CHECK(timer_set_counter_value(group, timer, 0x00000000ULL));
+  ESP_ERROR_CHECK(timer_start(group, timer));
 }
   
 void app_main(void)
@@ -177,18 +294,43 @@ void app_main(void)
     }
     int* sec_tupdate = pvPortMalloc(sizeof(int));
     *sec_tupdate = 60 - (currtime - (currtime / 60)*60);
+    int num_array=sizeof(times)/sizeof(times[0]);
+    int* lock_idx = pvPortMalloc(sizeof(int));
+    *lock_idx=0;
     xTaskCreate(&LCD_updater, "LCD_updater", 2048, sec_tupdate, 5, NULL);
-    //for (time_t* i=arr; *i; i++) {
-    //  printf("%s", ctime(i)); 
-    //  printf("%ld\n", *i); 
-    //}
+    xTaskCreate(&pulseLock , "pulseLock", 2048, lock_idx, 5, NULL);
+    s_timer_semaphore = xSemaphoreCreateBinary();
+    ini_timer(0,0, 1);
+    int curr_idx = *lock_idx;
+    while(1) {
+      if ((curr_idx != *lock_idx)) {
+        printf("Var changed (%d) \n", *lock_idx);
+        curr_idx = *lock_idx;
+        timer_set_counter_value(0,0,0);
+        timer_set_alarm(0,0,1);
+      }
+      else {
+        printf("Var not changed (%d) \n", *lock_idx);
+        vTaskDelay(50);
+      }
+    }
   }
 }
 
 void pulseLock(void* param) {
-  /*
-    This task sends 
-  */
+  int* lock_idx = (int *) param;
+  for (;;) {
+    // Wait until ISR gives semaphore, increment lock_idx counter
+    xSemaphoreTake(s_timer_semaphore, portMAX_DELAY);
+    ESP_LOGI(TAG, "INTERRUPT FROM TIMER");
+    ESP_LOGI(TAG, "RELEASING LOCK WITH IDX: %d", *lock_idx);
+    if (*lock_idx == 5) {
+      *lock_idx=0; 
+    }
+    else {
+      (*lock_idx)++;
+    }
+  }
 }
 
 void LCD_updater(void* param)
