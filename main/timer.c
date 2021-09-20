@@ -33,10 +33,10 @@ time_t* timeFromString(char** times, unsigned int len) {
         if (ret != strlen(datebuf)) {
           ESP_LOGW(TAG_TFS,"sprintf failed");
         }
-        if (strptime(datebuf, "%Y %m %d %H:%M ", &desttime) == NULL) {
+        if (strptime(datebuf, "%Y %m %d %H:%M:%S ", &desttime) == NULL) {
           ESP_LOGW(TAG_TFS,"strptime failed");
         }
-        if (strptime(times[i], "%H:%M", &desttime) == NULL) {
+        if (strptime(times[i], "%H:%M:%S", &desttime) == NULL) {
           ESP_LOGW(TAG_TFS,"strptime failed");
         }
         else {
@@ -46,9 +46,6 @@ time_t* timeFromString(char** times, unsigned int len) {
           }
           time_t tstamp = mktime(&desttime);
           double diff = difftime(tstamp, now);
-          printf("Tstamp: %s", ctime(&tstamp));
-          printf("Tnow: %s", ctime(&now));
-          printf("%.2f\n", diff);
           if (diff < 0) {
             desttime.tm_mday++;
             tstamp = mktime(&desttime);
@@ -58,6 +55,18 @@ time_t* timeFromString(char** times, unsigned int len) {
       }
   }
   return time_arr;
+}
+
+int comp_time(const void* elem1, const void* elem2) {
+  int f = *((int *) elem1);
+  int s = *((int *) elem2);
+  if (f > s) return 1;
+  if (f < s) return -1;
+  return 0;
+}
+
+void sort_time(time_t* arr, int len) {
+  qsort(arr, len, sizeof(*arr), comp_time);
 }
 
 void IRAM_ATTR timer_group0_isr(void *arg)

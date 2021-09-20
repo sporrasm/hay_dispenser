@@ -13,6 +13,8 @@
 
 time_t* timeFromString(char** times, unsigned int len);
 void ini_timer(int group, int timer, int time_interval);
+void sort_time(time_t* arr, int len);
+int comp_time(const void* elem1, const void* elem2);
 
 #define TIMER_DIVIDER 16
 #define TIMER_SCALE (TIMER_BASE_CLK / TIMER_DIVIDER)

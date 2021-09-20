@@ -18,13 +18,25 @@
 #define SCL_PIN  18
 #define LCD_COLS 16 
 #define LCD_ROWS 2
-#define GPIO_OUTPUT_33 33
-#define GPIO_OUTPUT_PIN_SEL ((1ULL << GPIO_OUTPUT_33))
+#define NUM_LOCKS 6 // Number of locks in dispenser array
+#define LOCK_MS 500 // Time to pulse the lock in milliseconds
+// GPIO pins used to control locks. There is perhaps a better system to this, I just need to figure out what
+#define LOCK_GPIO_0 33 
+#define LOCK_GPIO_1 32
+#define LOCK_GPIO_2 23 
+#define LOCK_GPIO_3 22 
+#define LOCK_GPIO_4 21 
+#define LOCK_GPIO_5 4 
+#define GPIO_OUTPUT_PIN_SEL ((1ULL << LOCK_GPIO_0) | (1ULL << LOCK_GPIO_1) \
+    | (1ULL << LOCK_GPIO_2) | (1ULL << LOCK_GPIO_3) | (1ULL << LOCK_GPIO_4) | (1ULL << LOCK_GPIO_5))
 
 void LCD_updater(void* param);
 void pulseLock(void* param);
+void updateAlarm(void* param);
 // Global definition for timer semaphore
 SemaphoreHandle_t s_timer_semaphore;
+// Global definition for update queue
+QueueHandle_t update_queue;
 
 static const char* TAG="MAIN";
 
@@ -75,7 +87,9 @@ void init_LCD() {
 void app_main(void)
 {
   // The parameter to strptime must given as hour (0-23) and
-  char* times[6] = {"09:00", "12:00", "15:00", "18:00", "21:00", "00:00"};
+  //char* times[NUM_LOCKS] = {"09:00", "12:00", "15:00", "18:00", "21:00", "00:00"};
+  char* times[NUM_LOCKS] = {"21:26:50", "20:51:15", "20:51:30", "20:51:45", "20:52:00", "20:52:15"};
+  // Table mapping lock indices to GPIO pin numbers
   char buf[6] = { 0 };
   int init_stat=init_horse_feeder();
   if (init_stat != 0) {
@@ -87,6 +101,9 @@ void app_main(void)
   wifi_conn_stat=conn_wifi();
   if (wifi_conn_stat != 0) {
     ESP_LOGW(TAG, "Connection failed!");
+    ESP_LOGI(TAG, "Restarting in 5 seconds ...");
+    vTaskDelay(pdMS_TO_TICKS(5000));
+    esp_restart();
   }   
   else {
     printf("Connected to WiFi\n");
@@ -98,7 +115,7 @@ void app_main(void)
     tv.tv_sec=currtime;
     settimeofday(&tv, NULL);
     time_t* arr=timeFromString(times, sizeof(times) / sizeof(times[0]));
-    
+    sort_time(arr, sizeof(times) / sizeof(times[0])); 
     // Init LCD, start task to update time
     LCD_home();
     LCD_clearScreen();
@@ -111,12 +128,34 @@ void app_main(void)
     }
     int* sec_tupdate = pvPortMalloc(sizeof(int));
     *sec_tupdate = 60 - (currtime - (currtime / 60)*60);
-    int num_array=sizeof(times)/sizeof(times[0]);
     int* lock_idx = pvPortMalloc(sizeof(int));
+    int* time_idx = pvPortMalloc(sizeof(int));
     *lock_idx=0;
+    *time_idx=0;
+    
     s_timer_semaphore = xSemaphoreCreateBinary();
+    update_queue = xQueueCreate(4, sizeof(time_t));
+    if (s_timer_semaphore == NULL) {
+      ESP_LOGW(TAG, "Semaphore creation failed, restarting in 5 s...");
+      vTaskDelay(pdMS_TO_TICKS(5000));
+      esp_restart();
+    }
+    if (update_queue == NULL) {
+      ESP_LOGW(TAG, "Queue creation failed, restarting in 5 s...");
+      vTaskDelay(pdMS_TO_TICKS(5000));
+      esp_restart();
+    }
+    for (unsigned int i = 0; i<6; i++) {
+      printf("Time value at arr[%d] = %ld\n", i, arr[i]);
+    }
+    time_t now = time(NULL);
+    time_t diff = *arr - now;
+    printf("Setting timer to %ld seconds", diff);
+    ini_timer(0,0, diff);
+    int curr_idx = 0;
     xTaskCreate(&LCD_updater, "LCD_updater", 2048, sec_tupdate, 5, NULL);
-    xTaskCreate(&pulseLock , "pulseLock", 2048, lock_idx, 5, NULL);
+    xTaskCreate(&pulseLock , "pulseLock", 2048, arr, 5, NULL);
+    xTaskCreate(&updateAlarm, "updateAlarm", 2048, NULL, 5, NULL);
     gpio_config_t io_conf;
     io_conf.intr_type=GPIO_INTR_DISABLE;
     io_conf.mode=GPIO_MODE_OUTPUT;
@@ -124,38 +163,59 @@ void app_main(void)
     io_conf.pull_down_en=0;
     io_conf.pull_up_en=0;
     gpio_config(&io_conf);
-    ini_timer(0,0, 1);
-    int curr_idx = *lock_idx;
 
-    while(1) {
-      if ((curr_idx != *lock_idx)) {
-        printf("Var changed (%d) \n", *lock_idx);
-        curr_idx = *lock_idx;
-        timer_set_counter_value(0,0,0);
-        timer_set_alarm(0,0,1);
-      }
-      else {
-        printf("Var not changed (%d) \n", *lock_idx);
-        vTaskDelay(50);
-      }
-    }
+    //while(1) {
+    //  if ((curr_idx != *lock_idx)) {
+    //    printf("Var changed (%d) \n", *lock_idx);
+    //    curr_idx = *lock_idx;
+    //    timer_set_counter_value(0,0,0);
+    //    ESP_ERROR_CHECK(timer_set_alarm_value(0,0,15));
+    //    ESP_ERROR_CHECK(timer_set_alarm(0,0,1));
+    //  }
+    //  else {
+    //    printf("Var not changed (%d) \n", *lock_idx);
+    //    vTaskDelay(50);
+    //  }
+    //}
+  }
+}
+
+void updateAlarm(void* param) {
+  time_t time_elem, diff = 0;
+  for (;;) {
+    xQueueReceive(update_queue, &time_elem, portMAX_DELAY);
+    time_t now = time(NULL);
+    diff = time_elem - now;
+    ESP_LOGI(TAG, "Setting timer to %ld seconds", diff);
+    ESP_LOGI(TAG, "Setting timer alarm to %s", ctime(&diff));
+    //ESP_ERROR_CHECK(timer_set_counter_value(0,0,0));
+    ESP_ERROR_CHECK(timer_set_alarm_value(0,0,diff));
+    ESP_ERROR_CHECK(timer_set_alarm(0,0,1));
   }
 }
 
 void pulseLock(void* param) {
-  int* lock_idx = (int *) param;
+  time_t* t_arr = (time_t*) param;
+  int lock_idx = 0; //(int *) param;
+  int idxToPin[NUM_LOCKS] = { LOCK_GPIO_0, LOCK_GPIO_1, LOCK_GPIO_2, LOCK_GPIO_3, LOCK_GPIO_4, LOCK_GPIO_5};
+
   for (;;) {
     // Wait until ISR gives semaphore, increment lock_idx counter
     xSemaphoreTake(s_timer_semaphore, portMAX_DELAY);
     ESP_LOGI(TAG, "INTERRUPT FROM TIMER");
-    ESP_LOGI(TAG, "RELEASING LOCK WITH IDX: %d", *lock_idx);
-    if (*lock_idx == 5) {
-      *lock_idx=0; 
-      gpio_set_level(GPIO_OUTPUT_33, 1);
+    ESP_LOGI(TAG, "RELEASING LOCK ON GPIO IDX: %d", *(idxToPin+lock_idx));
+    gpio_set_level(*(idxToPin+lock_idx), 1);
+    vTaskDelay(pdMS_TO_TICKS(LOCK_MS));
+    gpio_set_level(*(idxToPin+lock_idx), 0);
+    // Increment lock idx, loop back to zero if over range
+    if (lock_idx >= 5) {
+      lock_idx=0; 
     }
     else {
-      (*lock_idx)++;
-      gpio_set_level(GPIO_OUTPUT_33, 0);
+      lock_idx++;
+    }
+    if (xQueueSend(update_queue, (void *) &(*(t_arr+lock_idx)), pdMS_TO_TICKS(100) ) != pdPASS) {
+      ESP_LOGW(TAG, "FAILED TO UPDATE ALARM!");
     }
   }
 }
