@@ -86,9 +86,6 @@ void IRAM_ATTR timer_group0_isr(void *arg)
         TIMERG0.int_clr_timers.t1 = 1;
     }
 
-    /* After the alarm has been triggered we need enable it again, so it is triggered the next time */
-    //TIMERG0.hw_timer[timer_idx].config.alarm_en = TIMER_ALARM_DIS;
-
     // Give a semaphore to the Simulink task, so that it wakes up and executes 1 loop
     if (xSemaphoreGiveFromISR(s_timer_semaphore, &need_yield) != pdPASS)
     {
@@ -120,7 +117,6 @@ void IRAM_ATTR timer_group1_isr(void *arg)
     } else if ((intr_status & BIT(timer_idx)) && timer_idx == TIMER_1) {
         TIMERG0.int_clr_timers.t1 = 1;
     }
-
     // Try to give a semaphore to the pulseLock task 
     if (xSemaphoreGiveFromISR(s_timer_semaphore, &need_yield) != pdPASS)
     {

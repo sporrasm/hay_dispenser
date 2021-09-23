@@ -88,7 +88,7 @@ void app_main(void)
 {
   // The parameter to strptime must given as hour (0-23) and
   //char* times[NUM_LOCKS] = {"09:00", "12:00", "15:00", "18:00", "21:00", "00:00"};
-  char* times[NUM_LOCKS] = {"21:26:50", "20:51:15", "20:51:30", "20:51:45", "20:52:00", "20:52:15"};
+  char* times[NUM_LOCKS] = {"22:31:00", "22:31:15", "22:31:30", "22:31:45", "22:32:00", "22:32:15"};
   // Table mapping lock indices to GPIO pin numbers
   char buf[6] = { 0 };
   int init_stat=init_horse_feeder();
@@ -150,7 +150,7 @@ void app_main(void)
     }
     time_t now = time(NULL);
     time_t diff = *arr - now;
-    printf("Setting timer to %ld seconds", diff);
+    printf("Setting timer to %ld seconds\n", diff);
     ini_timer(0,0, diff);
     int curr_idx = 0;
     xTaskCreate(&LCD_updater, "LCD_updater", 2048, sec_tupdate, 5, NULL);
@@ -163,20 +163,6 @@ void app_main(void)
     io_conf.pull_down_en=0;
     io_conf.pull_up_en=0;
     gpio_config(&io_conf);
-
-    //while(1) {
-    //  if ((curr_idx != *lock_idx)) {
-    //    printf("Var changed (%d) \n", *lock_idx);
-    //    curr_idx = *lock_idx;
-    //    timer_set_counter_value(0,0,0);
-    //    ESP_ERROR_CHECK(timer_set_alarm_value(0,0,15));
-    //    ESP_ERROR_CHECK(timer_set_alarm(0,0,1));
-    //  }
-    //  else {
-    //    printf("Var not changed (%d) \n", *lock_idx);
-    //    vTaskDelay(50);
-    //  }
-    //}
   }
 }
 
@@ -188,15 +174,15 @@ void updateAlarm(void* param) {
     diff = time_elem - now;
     ESP_LOGI(TAG, "Setting timer to %ld seconds", diff);
     ESP_LOGI(TAG, "Setting timer alarm to %s", ctime(&diff));
-    //ESP_ERROR_CHECK(timer_set_counter_value(0,0,0));
-    ESP_ERROR_CHECK(timer_set_alarm_value(0,0,diff));
+    ESP_ERROR_CHECK(timer_set_counter_value(0,0,0));
+    ESP_ERROR_CHECK(timer_set_alarm_value(0,0,diff*TIMER_SCALE));
     ESP_ERROR_CHECK(timer_set_alarm(0,0,1));
   }
 }
 
 void pulseLock(void* param) {
   time_t* t_arr = (time_t*) param;
-  int lock_idx = 0; //(int *) param;
+  int lock_idx = 0;
   int idxToPin[NUM_LOCKS] = { LOCK_GPIO_0, LOCK_GPIO_1, LOCK_GPIO_2, LOCK_GPIO_3, LOCK_GPIO_4, LOCK_GPIO_5};
 
   for (;;) {
