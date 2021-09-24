@@ -2,6 +2,24 @@
 
 
 time_t* timeFromString(char** times, unsigned int len) {
+  /*
+  Ideas: if power goes out in the middle of feeding routine,
+  we need to pulse all locks before the current time to ensure
+  feeding. Strategy:
+
+  if current time is smaller than last time in the list,
+  we need parse all timestamps before 00:00 as the previous
+  day, and time stamps after 00:0 as current day
+
+  if current time is larger than last time stamp in the list,
+  we set all times to current day or the next, if time stamp
+  is larger than or equal to midnight. 
+  
+  Other option: write lock idx to flash:
+
+  https://www.esp32.com/viewtopic.php?t=6855
+
+     */
   time_t* time_arr = malloc((len+1)*sizeof(time_t));; // Array for storing output times (+1 for null)
   const char* TAG_TFS = "TimeFromString";
   char datebuf[30] = { '\0' };

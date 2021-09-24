@@ -87,7 +87,7 @@ void init_LCD() {
 void app_main(void)
 {
   // The parameter to strptime must given as hour (0-23) and
-  //char* times[NUM_LOCKS] = {"09:00", "12:00", "15:00", "18:00", "21:00", "00:00"};
+  //char* times[NUM_LOCKS] = {"21:00", "00:00", "03:00", "06:00", "09:00", "12:00"};
   char* times[NUM_LOCKS] = {"22:31:00", "22:31:15", "22:31:30", "22:31:45", "22:32:00", "22:32:15"};
   // Table mapping lock indices to GPIO pin numbers
   char buf[6] = { 0 };
@@ -181,6 +181,20 @@ void updateAlarm(void* param) {
 }
 
 void pulseLock(void* param) {
+  /*
+    This function is responsible for pulsing the lock when the hardware
+    timer alarm is triggered. Pulsing the lock will dispense one portion
+    of hay. If the power goes out for an undetermined amount of time,
+    all locks with time stamps smaller than the current time should also
+    be pulsed.
+    
+    the strategy to determine
+    which lock will be pulsed will be as follows:
+
+    1. Parameter time_arr is to given as non-sorted version of the array
+    2. Sort the array, first element should be closest to the next lock release
+    3. Associate lock_idx = 0 with this time, this assures 
+  */
   time_t* t_arr = (time_t*) param;
   int lock_idx = 0;
   int idxToPin[NUM_LOCKS] = { LOCK_GPIO_0, LOCK_GPIO_1, LOCK_GPIO_2, LOCK_GPIO_3, LOCK_GPIO_4, LOCK_GPIO_5};
