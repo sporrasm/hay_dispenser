@@ -9,8 +9,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include <driver/i2c.h>
-#include "driver/gpio.h"
-#include "timer.h"
+#include "timer_handler.h"
 #include "AIP31068L.h"
 
 #define LCD_ADDR 0x3e
@@ -20,15 +19,6 @@
 #define LCD_ROWS 2
 #define NUM_LOCKS 6 // Number of locks in dispenser array
 #define LOCK_MS 500 // Time to pulse the lock in milliseconds
-// GPIO pins used to control locks. There is perhaps a better system to this, I just need to figure out what
-#define LOCK_GPIO_0 33 
-#define LOCK_GPIO_1 32
-#define LOCK_GPIO_2 23 
-#define LOCK_GPIO_3 22 
-#define LOCK_GPIO_4 21 
-#define LOCK_GPIO_5 4 
-#define GPIO_OUTPUT_PIN_SEL ((1ULL << LOCK_GPIO_0) | (1ULL << LOCK_GPIO_1) \
-    | (1ULL << LOCK_GPIO_2) | (1ULL << LOCK_GPIO_3) | (1ULL << LOCK_GPIO_4) | (1ULL << LOCK_GPIO_5))
 
 void LCD_updater(void* param);
 void pulseLock(void* param);
@@ -153,16 +143,16 @@ void app_main(void)
     printf("Setting timer to %ld seconds\n", diff);
     ini_timer(0,0, diff);
     int curr_idx = 0;
+    if (lock_pin_init() != 0) {
+      ESP_LOGW(TAG, "Lock GPIO init failed, invalid args!")
+    }
+    if (dpd_pin_init() != 0) {
+      ESP_LOGW(TAG, "DPD GPIO init failed, invalid args!")
+    }
     xTaskCreate(&LCD_updater, "LCD_updater", 2048, sec_tupdate, 5, NULL);
     xTaskCreate(&pulseLock , "pulseLock", 2048, arr, 5, NULL);
     xTaskCreate(&updateAlarm, "updateAlarm", 2048, NULL, 5, NULL);
-    gpio_config_t io_conf;
-    io_conf.intr_type=GPIO_INTR_DISABLE;
-    io_conf.mode=GPIO_MODE_OUTPUT;
-    io_conf.pin_bit_mask=GPIO_OUTPUT_PIN_SEL;
-    io_conf.pull_down_en=0;
-    io_conf.pull_up_en=0;
-    gpio_config(&io_conf);
+
   }
 }
 
