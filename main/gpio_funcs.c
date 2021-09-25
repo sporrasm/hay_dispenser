@@ -1,8 +1,13 @@
 #include "gpio_funcs.h"
 
-void write_lock_idx_isr(void* arg) {
-  /*Implement lock idx write routine*/
-  return;
+void IRAM_ATTR write_lock_idx_isr(void* arg) {
+  int* lock_idx = (int *) arg;
+  ets_printf("Lock idx: %d", *lock_idx);
+  BaseType_t xHigherPriorityTaskWoken=pdFALSE;
+  xQueueSendFromISR(DPD_event_queue, lock_idx, &xHigherPriorityTaskWoken);
+  if (xHigherPriorityTaskWoken)  {
+    portYIELD_FROM_ISR();
+  }
 }
 
 uint8_t lock_pin_init() {
@@ -15,12 +20,10 @@ uint8_t lock_pin_init() {
   if (gpio_config(&io_conf) == ESP_ERR_INVALID_ARG) {
     return 1;
   }
-  else {
-    return 0;
-  }
+  return 0;
 }
 
-uint8_t dpd_pin_init() {
+uint8_t dpd_pin_init(int* lock_idx) {
   gpio_config_t io_conf;
   io_conf.intr_type=GPIO_INTR_NEGEDGE;
   io_conf.mode=GPIO_MODE_INPUT;
@@ -30,7 +33,8 @@ uint8_t dpd_pin_init() {
   if (gpio_config(&io_conf) == ESP_ERR_INVALID_ARG) {
     return 1;
   }
-  if (gpio_install_isr_service(ESP_INTR_FLAG_DEFAULT) != ESP_OK)
-    
+  ESP_ERROR_CHECK(gpio_install_isr_service(ESP_INTR_FLAG_IRAM));
+  ESP_ERROR_CHECK(gpio_isr_handler_add(DPD_GPIO, write_lock_idx_isr, (void*) (lock_idx)));
+  return 0;
 }
 

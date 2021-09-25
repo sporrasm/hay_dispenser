@@ -5,13 +5,15 @@
 #include <sys/time.h>
 #include "esp_log.h"
 #include "wifi_connect.h"
-#include "ntp_client.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include <driver/i2c.h>
 #include "timer_handler.h"
+#include "ntp_client.h"
+#include "gpio_funcs.h"
 #include "AIP31068L.h"
 
+#define T_OFFS 90 // Time in seconds to offset the array values once it has been looped over
 #define LCD_ADDR 0x3e
 #define SDA_PIN  19
 #define SCL_PIN  18
@@ -23,10 +25,12 @@
 void LCD_updater(void* param);
 void pulseLock(void* param);
 void updateAlarm(void* param);
+void writeIdxToFlash(void* param);
 // Global definition for timer semaphore
 SemaphoreHandle_t s_timer_semaphore;
 // Global definition for update queue
 QueueHandle_t update_queue;
+QueueHandle_t DPD_event_queue;
 
 static const char* TAG="MAIN";
 
@@ -78,7 +82,7 @@ void app_main(void)
 {
   // The parameter to strptime must given as hour (0-23) and
   //char* times[NUM_LOCKS] = {"21:00", "00:00", "03:00", "06:00", "09:00", "12:00"};
-  char* times[NUM_LOCKS] = {"22:31:00", "22:31:15", "22:31:30", "22:31:45", "22:32:00", "22:32:15"};
+  char* times[NUM_LOCKS] = {"16:31:00", "16:31:15", "16:31:30", "16:31:45", "16:32:00", "16:32:15"};
   // Table mapping lock indices to GPIO pin numbers
   char buf[6] = { 0 };
   int init_stat=init_horse_feeder();
@@ -125,6 +129,7 @@ void app_main(void)
     
     s_timer_semaphore = xSemaphoreCreateBinary();
     update_queue = xQueueCreate(4, sizeof(time_t));
+    DPD_event_queue = xQueueCreate(4, sizeof(int));
     if (s_timer_semaphore == NULL) {
       ESP_LOGW(TAG, "Semaphore creation failed, restarting in 5 s...");
       vTaskDelay(pdMS_TO_TICKS(5000));
@@ -135,38 +140,62 @@ void app_main(void)
       vTaskDelay(pdMS_TO_TICKS(5000));
       esp_restart();
     }
+    if (DPD_event_queue == NULL) {
+      ESP_LOGW(TAG, "Queue creation failed, restarting in 5 s...");
+      vTaskDelay(pdMS_TO_TICKS(5000));
+      esp_restart();
+    }
     for (unsigned int i = 0; i<6; i++) {
       printf("Time value at arr[%d] = %ld\n", i, arr[i]);
     }
+
     time_t now = time(NULL);
     time_t diff = *arr - now;
-    printf("Setting timer to %ld seconds\n", diff);
-    ini_timer(0,0, diff);
-    int curr_idx = 0;
-    if (lock_pin_init() != 0) {
-      ESP_LOGW(TAG, "Lock GPIO init failed, invalid args!")
+    if (diff > 0) {
+      printf("Setting timer to %ld seconds\n", diff);
+      ini_timer(0,0, diff);
     }
-    if (dpd_pin_init() != 0) {
-      ESP_LOGW(TAG, "DPD GPIO init failed, invalid args!")
+    else {
+      ESP_LOGW(TAG, "Time diff was negative! (%ld seconds)", diff);
+    }
+
+    if (lock_pin_init() != 0) {
+      ESP_LOGW(TAG, "Lock GPIO init failed, invalid args!");
+    }
+
+    if (dpd_pin_init(lock_idx) != 0) {
+      ESP_LOGW(TAG, "DPD GPIO init failed, invalid args!");
     }
     xTaskCreate(&LCD_updater, "LCD_updater", 2048, sec_tupdate, 5, NULL);
     xTaskCreate(&pulseLock , "pulseLock", 2048, arr, 5, NULL);
     xTaskCreate(&updateAlarm, "updateAlarm", 2048, NULL, 5, NULL);
+    xTaskCreate(&writeIdxToFlash, "writeFlash", 2048, NULL, 6, NULL);
+  }
+}
 
+void writeIdxToFlash(void* param) {
+  int idx = 0;
+  for (;;) {
+    xQueueReceive(DPD_event_queue, &idx, portMAX_DELAY);
+    ESP_LOGI(TAG, "Power down detected!");
+    ESP_LOGI(TAG, "Writing idx %d to flash!", idx);
   }
 }
 
 void updateAlarm(void* param) {
-  time_t time_elem, diff = 0;
+  time_t val = 0;
   for (;;) {
-    xQueueReceive(update_queue, &time_elem, portMAX_DELAY);
-    time_t now = time(NULL);
-    diff = time_elem - now;
-    ESP_LOGI(TAG, "Setting timer to %ld seconds", diff);
-    ESP_LOGI(TAG, "Setting timer alarm to %s", ctime(&diff));
-    ESP_ERROR_CHECK(timer_set_counter_value(0,0,0));
-    ESP_ERROR_CHECK(timer_set_alarm_value(0,0,diff*TIMER_SCALE));
-    ESP_ERROR_CHECK(timer_set_alarm(0,0,1));
+    xQueueReceive(update_queue, &val, portMAX_DELAY);
+    if (val > 0) {
+      ESP_LOGI(TAG, "Setting timer to %ld seconds", val);
+      ESP_LOGI(TAG, "Setting timer alarm to %s", ctime(&val));
+      ESP_ERROR_CHECK(timer_set_counter_value(0,0,0));
+      ESP_ERROR_CHECK(timer_set_alarm_value(0,0,val*TIMER_SCALE));
+      ESP_ERROR_CHECK(timer_set_alarm(0,0,1));
+    }
+    else {
+      ESP_LOGW(TAG,"Invalid time value for alarm: %ld seconds!!", val);
+    }
   }
 }
 
@@ -186,6 +215,7 @@ void pulseLock(void* param) {
     3. Associate lock_idx = 0 with this time, this assures 
   */
   time_t* t_arr = (time_t*) param;
+  time_t now = 0, diff = 0;
   int lock_idx = 0;
   int idxToPin[NUM_LOCKS] = { LOCK_GPIO_0, LOCK_GPIO_1, LOCK_GPIO_2, LOCK_GPIO_3, LOCK_GPIO_4, LOCK_GPIO_5};
 
@@ -204,8 +234,25 @@ void pulseLock(void* param) {
     else {
       lock_idx++;
     }
-    if (xQueueSend(update_queue, (void *) &(*(t_arr+lock_idx)), pdMS_TO_TICKS(100) ) != pdPASS) {
-      ESP_LOGW(TAG, "FAILED TO UPDATE ALARM!");
+    now = time(NULL);
+    diff = *(t_arr+lock_idx) - now;
+    if (diff > 0) {
+      if (xQueueSend(update_queue, (void *) &diff, pdMS_TO_TICKS(100) ) != pdPASS) {
+        ESP_LOGW(TAG, "FAILED TO UPDATE ALARM!");
+      }
+    } 
+    else {
+      ESP_LOGI(TAG, "Time diff was negative! (%ld seconds)", diff);
+      ESP_LOGI(TAG, "Increasing time_arr values by one day");
+      for (uint8_t i = 0; i < NUM_LOCKS; i++) {
+        *(t_arr+i) += T_OFFS;
+      }
+      sort_time(t_arr, NUM_LOCKS);
+      now=time(NULL);
+      diff = *(t_arr+lock_idx) - now;
+      if (xQueueSend(update_queue, (void *) &diff, pdMS_TO_TICKS(100) ) != pdPASS) {
+        ESP_LOGW(TAG, "FAILED TO UPDATE ALARM!");
+      }
     }
   }
 }

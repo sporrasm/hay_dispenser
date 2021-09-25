@@ -2,11 +2,12 @@
 set(COMPONENT_REQUIRES )
 set(COMPONENT_PRIV_REQUIRES )
 
-set(COMPONENT_SRCS "horse_feeder_main.c wifi_connect.c ntp_client.c" "timer_handler.c")
+set(COMPONENT_SRCS "horse_feeder_main.c wifi_connect.c ntp_client.c" "timer_handler.c" "gpio_funcs.c")
 set(COMPONENT_ADD_INCLUDEDIRS "")
 
 register_component(SRCS "horse_feeder_main.c"
     "wifi_connect.c"
     "ntp_client.c"
     "timer_handler.c"
+    "gpio_funcs.c"
     INCLUDE_DIRS ".")
