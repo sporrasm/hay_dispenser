@@ -1,4 +1,5 @@
 #include "timer_handler.h"
+#include <inttypes.h>
 
 
 time_t* timeFromString(char** times, unsigned int len) {
@@ -145,7 +146,7 @@ void IRAM_ATTR timer_group1_isr(void *arg)
     }
 
 }
-void ini_timer(int group, int timer, int time_interval) {
+void ini_timer(int group, int timer, uint64_t time_interval) {
   /*
       This function is used to initialize a hardware timer. The timer will
       trigger an interrupt, which in turn will trigger the next lock to
@@ -158,7 +159,6 @@ void ini_timer(int group, int timer, int time_interval) {
       int time_interval 
         Time until alarm sets off (in seconds)
   */
-
   // Initialize timer struct, contants defined in hal/include/hal/timer_types.h
   timer_config_t config = {
     .divider = TIMER_DIVIDER,
@@ -170,7 +170,12 @@ void ini_timer(int group, int timer, int time_interval) {
   };
   ESP_ERROR_CHECK(timer_init(group, timer, &config));
   ESP_ERROR_CHECK(timer_set_counter_value(group, timer, 0x00000000ULL));
-  int timer_value = time_interval*TIMER_SCALE;
+  uint64_t timer_value = time_interval*TIMER_SCALE;
+  ESP_LOGI(TAG_TIMER_INIT, "Initing timer with freq: %d and clock_div: %d", TIMER_BASE_CLK, TIMER_DIVIDER);
+  ESP_LOGI(TAG_TIMER_INIT, "Timer tickrate is %d ticks/second", TIMER_SCALE);
+  // The input time can be cast to 32 bit uint, since there are enough bits to represent 136 years. 
+  ESP_LOGI(TAG_TIMER_INIT, "Initial alarm will be set to %d seconds from currrent time", (uint32_t) time_interval);
+  printf("Alarm time in timer units %" PRIu64 "\n", timer_value);
   ESP_ERROR_CHECK(timer_set_alarm_value(group, timer, timer_value));
   ESP_ERROR_CHECK(timer_enable_intr(group, timer));
 
@@ -182,8 +187,6 @@ void ini_timer(int group, int timer, int time_interval) {
     ESP_ERROR_CHECK(timer_isr_register(TIMER_GROUP_1, timer, timer_group1_isr,
         (void *) timer, ESP_INTR_FLAG_IRAM, NULL));
   }
-  //ESP_ERROR_CHECK(timer_pause(group, timer));
-  //ESP_ERROR_CHECK(timer_set_counter_value(group, timer, 0x00000000ULL));
   ESP_ERROR_CHECK(timer_start(group, timer));
 }
 

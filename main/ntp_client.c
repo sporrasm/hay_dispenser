@@ -69,7 +69,7 @@ time_t get_time()
     int portno = 123; // NTP UDP port number.
 
     // NTP server hostnames. Use MIKES server in Finland.
-    const char* host_name = "us.pool.ntp.org";//"time.mikes.fi";
+    const char* host_name = "time.mikes.fi";
 
     // Create and zero out the packet. All 48 bytes worth.
 
