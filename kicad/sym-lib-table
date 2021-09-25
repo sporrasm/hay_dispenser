@@ -1,0 +1,3 @@
+(sym_lib_table
+  (lib (name horse_feeder-rescue)(type Legacy)(uri ${KIPRJMOD}/horse_feeder-rescue.lib)(options "")(descr ""))
+)
