@@ -84,8 +84,8 @@ void init_LCD() {
 void app_main(void)
 {
   // The parameter to strptime must given as hour (0-23) and
-  //char* times[NUM_LOCKS] = {"21:00", "00:00", "03:00", "06:00", "09:00", "12:00"};
-  char* times[NUM_LOCKS] = {"01:30:00", "02:30:00", "04:30:00", "06:30:00", "08:30:00", "10:30:00"};
+  //char* times[NUM_LOCKS] = {"01:36:00", "02:30:00", "04:30:00", "06:30:00", "08:30:00", "10:30:00"};
+  char* times[NUM_LOCKS] = {"10:38:00", "12:32:15", "14:32:30", "16:32:45", "18:33:00", "20:33:15"};
   // Table mapping lock indices to GPIO pin numbers
   char buf[6] = { 0 };
   int init_stat=init_horse_feeder();
@@ -191,7 +191,7 @@ void updateAlarm(void* param) {
     if (val > 0) {
       ESP_LOGI(TAG_ALARM, "Setting timer to %ld seconds", val);
       ESP_ERROR_CHECK(timer_set_counter_value(0,0,0));
-      ESP_ERROR_CHECK(timer_set_alarm_value(0,0,val*TIMER_SCALE));
+      ESP_ERROR_CHECK(timer_set_alarm_value(0,0, ((uint64_t) val)*((uint64_t)TIMER_SCALE)));
       ESP_ERROR_CHECK(timer_set_alarm(0,0,1));
     }
     else {
