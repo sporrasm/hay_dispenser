@@ -85,7 +85,7 @@ void app_main(void)
 {
   // The parameter to strptime must given as hour (0-23) and
   //char* times[NUM_LOCKS] = {"01:36:00", "02:30:00", "04:30:00", "06:30:00", "08:30:00", "10:30:00"};
-  char* times[NUM_LOCKS] = {"10:38:00", "12:32:15", "14:32:30", "16:32:45", "18:33:00", "20:33:15"};
+  char* times[NUM_LOCKS] = {"10:44:00", "11:20:15", "14:32:30", "16:32:45", "18:33:00", "20:33:15"};
   // Table mapping lock indices to GPIO pin numbers
   char buf[6] = { 0 };
   int init_stat=init_horse_feeder();
@@ -262,16 +262,21 @@ void LCD_updater(void* param)
 /*
    This task should run every 60 seconds or so
    to update the time reading on the LCD screen
+   TODO: Add a queue/semaphore to be given by ISR.
+   Based on that, increment/decrement screen idx
+   and display alarm times on the LCD screen.
 */
 {
-    char txtBuf[16];
-    int* sec_tupdate=(int *) param;
-    TickType_t xLastWakeTime;
-    const TickType_t xFreq = pdMS_TO_TICKS(60000);
-    xLastWakeTime = xTaskGetTickCount();
-    //ESP_LOGI(TAG, "Waiting %d seconds to sync with clock.", *sec_tupdate);
-    vTaskDelay(pdMS_TO_TICKS(*(sec_tupdate)*1000));
-    while (1) {
+  char txtBuf[16];
+  int* sec_tupdate=(int *) param;
+  int screen_idx=0;
+  TickType_t xLastWakeTime;
+  const TickType_t xFreq = pdMS_TO_TICKS(60000);
+  xLastWakeTime = xTaskGetTickCount();
+  //ESP_LOGI(TAG, "Waiting %d seconds to sync with clock.", *sec_tupdate);
+  vTaskDelay(pdMS_TO_TICKS(*(sec_tupdate)*1000));
+  while (1) {
+    if (screen_idx == 0) {
       vTaskDelayUntil(&xLastWakeTime, xFreq);
       LCD_setCursor(0, 1);
       time_t now = time(NULL);
@@ -280,4 +285,24 @@ void LCD_updater(void* param)
       sprintf(txtBuf, "TIME: %02d:%02d", timeinfo.tm_hour, timeinfo.tm_min);
       LCD_writeStr(txtBuf);
     }
+    else {
+      switch (screen_idx) {
+        case 1:
+          break;
+        case 2:
+          break;
+        case 3:
+          break;
+        case 4:
+          break;
+        case 5:
+          break;
+        case 6:
+          break;
+        default:
+          screen_idx=0;
+          break;
+      } 
+    }
+  }
 }
