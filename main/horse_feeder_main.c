@@ -141,8 +141,6 @@ void app_main(void)
       LCD_setCursor(6, 1);
       LCD_writeStr(buf);
     }
-    int* sec_tupdate = pvPortMalloc(sizeof(int));
-    *sec_tupdate = 60 - (currtime - (currtime / 60)*60);
     int* lock_idx = pvPortMalloc(sizeof(int));
     int* time_idx = pvPortMalloc(sizeof(int));
     *lock_idx=0;
@@ -191,7 +189,7 @@ void app_main(void)
     if (button_pin_init() != 0) {
       ESP_LOGW(TAG, "Button GPIO init failed, invalid args!");
     }
-    xTaskCreate(&LCD_updater, "LCD_updater", 2048, sec_tupdate, 5, NULL);
+    xTaskCreate(&LCD_updater, "LCD_updater", 2048, NULL, 5, NULL);
     xTaskCreate(&pulseLock , "pulseLock", 2048, arr, 5, NULL);
     xTaskCreate(&updateAlarm, "updateAlarm", 2048, NULL, 5, NULL);
     xTaskCreate(&updateScreenIdx, "updateScreenIdx", 2048, NULL, 5, NULL);
@@ -352,23 +350,26 @@ void LCD_updater(void* param)
 */
 {
   char txtBuf[16];
-  int* sec_tupdate=(int *) param;
   int screen_idx=0;
+  time_t now;
+  struct tm timeinfo;
   TickType_t xLastWakeTime;
-  TickType_t xFreq = pdMS_TO_TICKS(*(sec_tupdate)*1000);
+  // Calculate ticks until next full minute
+  TickType_t xFreq = 0;
   xLastWakeTime = xTaskGetTickCount();
   while (1) {
     // Wait until it's time to update or we receive index from queue
+    now=time(NULL);
+    xFreq = pdMS_TO_TICKS((60 - (now - (now / 60)*60))*(1000));
+    ESP_LOGI(TAG, "Waiting %d milliseconds until next screen refresh", xFreq);
     if (xQueueReceive(screen_queue, &screen_idx, xFreq) == pdFALSE) {
       if (screen_idx == 0) {
         vTaskDelayUntil(&xLastWakeTime, xFreq);
         LCD_setCursor(0, 1);
-        time_t now = time(NULL);
-        struct tm timeinfo;
+        now=time(NULL);
         localtime_r(&now, &timeinfo);
         sprintf(txtBuf, "TIME: %02d:%02d", timeinfo.tm_hour, timeinfo.tm_min);
         LCD_writeStr(txtBuf);
-        xFreq=pdMS_TO_TICKS(60000);
       }
     } 
     // Received something from queue, display alarm times
