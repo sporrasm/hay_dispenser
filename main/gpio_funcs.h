@@ -21,12 +21,34 @@
 #define DPD_GPIO 13 // Power down detection pin
 #define DPD_GPIO_SEL (1ULL << DPD_GPIO) // Bit mask for DPD pin
 
+#define LEFT_PIN 34
+#define RIGHT_PIN 35
+#define CENTER_PIN 25
+
+#define BUTTON_PIN_SEL ((1ULL << LEFT_PIN) | (1ULL << RIGHT_PIN) | (1ULL << CENTER_PIN))
+
 void IRAM_ATTR write_lock_idx_isr(void* arg);
+void IRAM_ATTR button_left_interrupt(void* arg);
+void IRAM_ATTR button_right_interrupt(void* arg);
+void IRAM_ATTR button_center_interrupt(void* arg);
 
 uint8_t lock_pin_init();
+uint8_t button_pin_init();
 
 uint8_t dpd_pin_init(int* lock_idx);
 
 extern QueueHandle_t DPD_event_queue;
+extern portMUX_TYPE lmux;
+extern portMUX_TYPE rmux;
+extern portMUX_TYPE cmux;
+extern volatile uint32_t lnum_edges;
+extern volatile uint32_t rnum_edges;
+extern volatile uint32_t cnum_edges;
+extern volatile uint32_t lstate;
+extern volatile uint32_t rstate;
+extern volatile uint32_t cstate;
+extern volatile uint32_t ldebounce_tick;
+extern volatile uint32_t rdebounce_tick;
+extern volatile uint32_t cdebounce_tick;
 
 #endif
