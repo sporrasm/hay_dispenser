@@ -85,7 +85,7 @@ void app_main(void)
 {
   // The parameter to strptime must given as hour (0-23) and
   //char* times[NUM_LOCKS] = {"01:36:00", "02:30:00", "04:30:00", "06:30:00", "08:30:00", "10:30:00"};
-  char* times[NUM_LOCKS] = {"10:44:00", "11:20:15", "14:32:30", "16:32:45", "18:33:00", "20:33:15"};
+  char* times[NUM_LOCKS] = {"22:01:00", "22:01:15", "22:01:30", "22:01:45", "22:02:15", "21:02:30"};
   // Table mapping lock indices to GPIO pin numbers
   char buf[6] = { 0 };
   int init_stat=init_horse_feeder();
@@ -165,9 +165,9 @@ void app_main(void)
       ESP_LOGW(TAG, "Lock GPIO init failed, invalid args!");
     }
 
-    if (dpd_pin_init(lock_idx) != 0) {
-      ESP_LOGW(TAG, "DPD GPIO init failed, invalid args!");
-    }
+    //if (dpd_pin_init(lock_idx) != 0) {
+    //  ESP_LOGW(TAG, "DPD GPIO init failed, invalid args!");
+    //}
     xTaskCreate(&LCD_updater, "LCD_updater", 2048, sec_tupdate, 5, NULL);
     xTaskCreate(&pulseLock , "pulseLock", 2048, arr, 5, NULL);
     xTaskCreate(&updateAlarm, "updateAlarm", 2048, NULL, 5, NULL);
@@ -225,7 +225,7 @@ void pulseLock(void* param) {
     xSemaphoreTake(s_timer_semaphore, portMAX_DELAY);
     ESP_LOGI(TAG_LOCK, "INTERRUPT FROM TIMER");
     ESP_LOGI(TAG_LOCK, "RELEASING LOCK ON GPIO IDX: %d", *(idxToPin+lock_idx));
-    gpio_set_level(*(idxToPin+lock_idx), 1);
+    gpio_set_level(*(idxToPin+lock_idx), 1); // MOSFET drivers are active high 
     vTaskDelay(pdMS_TO_TICKS(LOCK_MS));
     gpio_set_level(*(idxToPin+lock_idx), 0);
     // Increment lock idx, loop back to zero if over range
