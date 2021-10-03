@@ -21,12 +21,14 @@
 #define LCD_COLS 16 
 #define LCD_ROWS 2
 #define NUM_LOCKS 6 // Number of locks in dispenser array
+#define STRLEN 8 // Length of one time stamp string, not counting the null byte
 #define LOCK_MS 500 // Time to pulse the lock in milliseconds
 
 void LCD_updater(void* param);
 void pulseLock(void* param);
 void updateAlarm(void* param);
-void updateScreenIdx(void* param);
+void updateScreenIdxLeft(void* param);
+void updateScreenIdxRight(void* param);
 //void writeIdxToFlash(void* param);
 // Global definition for timer semaphore
 SemaphoreHandle_t s_timer_semaphore;
@@ -50,10 +52,12 @@ volatile uint32_t cdebounce_tick=0;
 portMUX_TYPE lmux=portMUX_INITIALIZER_UNLOCKED;
 portMUX_TYPE rmux=portMUX_INITIALIZER_UNLOCKED;
 portMUX_TYPE cmux=portMUX_INITIALIZER_UNLOCKED;
+portMUX_TYPE screen_mux=portMUX_INITIALIZER_UNLOCKED;
 
 static const char* TAG="MAIN";
 static const char* TAG_LOCK="PulseLock";
 static const char* TAG_ALARM="UpdateAlarm";
+
 
 int set_tz(const char* targ_tz){
   int ret=setenv("TZ", targ_tz, 1);
@@ -91,7 +95,18 @@ int init_horse_feeder(void) {
 
 void init_LCD() {
   ESP_LOGI(TAG, "Starting up LCD");
-  LCD_quick_init(LCD_ADDR, SDA_PIN, SCL_PIN, LCD_COLS, LCD_ROWS);
+  //LCD_quick_init(LCD_ADDR, SDA_PIN, SCL_PIN, LCD_COLS, LCD_ROWS);
+  struct LCD_config lcd_conf;
+  lcd_conf.bitmode_flag=1;
+  lcd_conf.two_line_flag=1;
+  lcd_conf.display_flag=0;
+  lcd_conf.pixel_flag=1;
+  lcd_conf.cursor_flag=0;
+  lcd_conf.blink_flag=0;
+  lcd_conf.entrymode_flag=1;
+  lcd_conf.shiftmode_flag=0;
+
+  LCD_init(LCD_ADDR, SDA_PIN, SCL_PIN, &lcd_conf);
   LCD_clearScreen();
   LCD_home();
   LCD_writeStr("HorseFeeder 3000");
@@ -141,10 +156,8 @@ void app_main(void)
       LCD_setCursor(6, 1);
       LCD_writeStr(buf);
     }
-    int* lock_idx = pvPortMalloc(sizeof(int));
-    int* time_idx = pvPortMalloc(sizeof(int));
-    *lock_idx=0;
-    *time_idx=0;
+    int* screen_idx = pvPortMalloc(sizeof(int));
+    *screen_idx=0;
     
     s_timer_semaphore = xSemaphoreCreateBinary();
     update_queue = xQueueCreate(4, sizeof(time_t));
@@ -189,10 +202,19 @@ void app_main(void)
     if (button_pin_init() != 0) {
       ESP_LOGW(TAG, "Button GPIO init failed, invalid args!");
     }
-    xTaskCreate(&LCD_updater, "LCD_updater", 2048, NULL, 5, NULL);
+
+    char** time_arr = pvPortMalloc(NUM_LOCKS * sizeof(char*));
+    for (uint8_t i = 0; i < NUM_LOCKS; i++) {
+      time_arr[i] = pvPortMalloc((STRLEN+1)*sizeof(char));
+      if (strcpy(time_arr[i], times[i]) != NULL) {
+        ESP_LOGI(TAG,"Succesfully dynamically allocated. Array element at idx %d is %s", i, time_arr[i]);
+      }
+    }
+    xTaskCreate(&LCD_updater, "LCD_updater", 2048, time_arr, 5, NULL);
     xTaskCreate(&pulseLock , "pulseLock", 2048, arr, 5, NULL);
     xTaskCreate(&updateAlarm, "updateAlarm", 2048, NULL, 5, NULL);
-    xTaskCreate(&updateScreenIdx, "updateScreenIdx", 2048, NULL, 5, NULL);
+    xTaskCreate(&updateScreenIdxLeft, "updateScreenIdxLeft", 2048, screen_idx, 5, NULL);
+    xTaskCreate(&updateScreenIdxRight, "updateScreenIdxRight", 2048, screen_idx, 5, NULL);
     //xTaskCreate(&writeIdxToFlash, "writeFlash", 2048, NULL, 6, NULL);
   }
 }
@@ -222,58 +244,39 @@ void updateAlarm(void* param) {
   }
 }
 
-void updateScreenIdx(void* param) {
-  int screen_idx=0;
+void updateScreenIdxLeft(void* param) {
+  int* screen_idx = (int *) param;
   int curr_state=0;
   int num_edges=0;
   int last_state=0;
+  int idx=0;
   int debounce_time=0;
   for (;;) {
     // Ensure that ISR doesn't write to variables
-    portENTER_CRITICAL_ISR(&lmux);
+    portENTER_CRITICAL(&lmux);
     // Read the last status from button
     num_edges=lnum_edges;
     debounce_time=ldebounce_tick;
     last_state=lstate;
-    portEXIT_CRITICAL_ISR(&lmux);
+    portEXIT_CRITICAL(&lmux);
     // Read the current state of the button
     curr_state=gpio_get_level(LEFT_PIN);
     // Debounce switch in software
-    if ((num_edges != 0) && (curr_state==last_state) && ((xTaskGetTickCount() - debounce_time) > pdMS_TO_TICKS(200))) {
-      screen_idx--;
-      ESP_LOGI(TAG, "Screen idx is now: %d", screen_idx);
-      if (xQueueSend(screen_queue, (void *) &screen_idx, pdMS_TO_TICKS(100) ) != pdPASS) {
+    if ((num_edges != 0) && (curr_state==last_state) && \
+        ((xTaskGetTickCount() - debounce_time) > pdMS_TO_TICKS(DEBOUNCE_MS))) {
+      (*screen_idx)--;
+    if (*screen_idx<0) {
+        *screen_idx=6;
+      }
+      ESP_LOGI(TAG, "Screen idx is now: %d", *screen_idx);
+      idx=*screen_idx;
+      if (xQueueSend(screen_queue, (void *) &idx, pdMS_TO_TICKS(100) ) != pdPASS) {
         ESP_LOGW(TAG, "Failed to update screen_idx");
       }
       // Reset edge counter
-      portENTER_CRITICAL_ISR(&lmux);
+      portENTER_CRITICAL(&lmux);
       lnum_edges=0;
-      portEXIT_CRITICAL_ISR(&lmux);
-      vTaskDelay(pdMS_TO_TICKS(10));
-  } 
-  else {
-    vTaskDelay(pdMS_TO_TICKS(10));
-  }
-    // Do same thing for the right button
-    portENTER_CRITICAL_ISR(&rmux);
-    // Read the last status from button
-    num_edges=rnum_edges;
-    debounce_time=rdebounce_tick;
-    last_state=rstate;
-    portEXIT_CRITICAL_ISR(&rmux);
-    // Read the current state of the button
-    curr_state=gpio_get_level(LEFT_PIN);
-    // Debounce switch in software
-    if ((num_edges != 0) && (curr_state==last_state) && ((xTaskGetTickCount() - debounce_time) > pdMS_TO_TICKS(200))) {
-      screen_idx++;
-      ESP_LOGI(TAG, "Screen idx is now: %d", screen_idx);
-      if (xQueueSend(screen_queue, (void *) &screen_idx, pdMS_TO_TICKS(100) ) != pdPASS) {
-        ESP_LOGW(TAG, "Failed to update screen_idx");
-      }
-      // Reset edge counter
-      portENTER_CRITICAL_ISR(&rmux);
-      rnum_edges=0;
-      portEXIT_CRITICAL_ISR(&rmux);
+      portEXIT_CRITICAL(&lmux);
       vTaskDelay(pdMS_TO_TICKS(10));
     } 
     else {
@@ -282,6 +285,46 @@ void updateScreenIdx(void* param) {
   }
 }
 
+void updateScreenIdxRight(void* param) {
+  int* screen_idx= (int*) param;
+  int curr_state=0;
+  int num_edges=0;
+  int last_state=0;
+  int debounce_time=0;
+  int idx=0;
+  for (;;) {
+    // Ensure that ISR doesn't write to variables
+    portENTER_CRITICAL(&rmux);
+    // Read the last status from button
+    num_edges=rnum_edges;
+    debounce_time=rdebounce_tick;
+    last_state=rstate;
+    portEXIT_CRITICAL(&rmux);
+    // Read the current state of the button
+    curr_state=gpio_get_level(LEFT_PIN);
+    // Debounce switch in software
+    if ((num_edges != 0) && (curr_state==last_state) && ((xTaskGetTickCount() - debounce_time) > pdMS_TO_TICKS(DEBOUNCE_MS))) {
+      (*screen_idx)++;
+      if (*screen_idx>6) {
+        (*screen_idx)=0;
+      }
+      ESP_LOGI(TAG, "Screen idx is now: %d", *screen_idx);
+      idx=*screen_idx;
+      if (xQueueSend(screen_queue, (void *) &idx, pdMS_TO_TICKS(100) ) != pdPASS) {
+        ESP_LOGW(TAG, "Failed to update screen_idx");
+      }
+      // Reset edge counter
+      portENTER_CRITICAL(&rmux);
+      rnum_edges=0;
+      portEXIT_CRITICAL(&rmux);
+      vTaskDelay(pdMS_TO_TICKS(10));
+    } 
+    else {
+      vTaskDelay(pdMS_TO_TICKS(10));
+    }
+  }
+}
+  
 void pulseLock(void* param) {
   /*
     This function is responsible for pulsing the lock when the hardware
@@ -349,7 +392,11 @@ void LCD_updater(void* param)
    and display alarm times on the LCD screen.
 */
 {
-  char txtBuf[16];
+  char** times= (char **) param;
+  for (uint8_t i = 0; i < NUM_LOCKS; i++) {
+    ESP_LOGI(TAG,"String at idx %d is %s", i, *(times+i));
+  }
+  char txtbuf[16];
   int screen_idx=0;
   time_t now;
   struct tm timeinfo;
@@ -365,27 +412,76 @@ void LCD_updater(void* param)
     if (xQueueReceive(screen_queue, &screen_idx, xFreq) == pdFALSE) {
       if (screen_idx == 0) {
         vTaskDelayUntil(&xLastWakeTime, xFreq);
+        LCD_clearScreen();
+        LCD_setCursor(0,0);
+        LCD_writeStr("PonyFeeder 3000");
         LCD_setCursor(0, 1);
         now=time(NULL);
         localtime_r(&now, &timeinfo);
-        sprintf(txtBuf, "TIME: %02d:%02d", timeinfo.tm_hour, timeinfo.tm_min);
-        LCD_writeStr(txtBuf);
+        sprintf(txtbuf, "TIME: %02d:%02d", timeinfo.tm_hour, timeinfo.tm_min);
+        LCD_writeStr(txtbuf);
       }
     } 
     // Received something from queue, display alarm times
     else {
       switch (screen_idx) {
+        case 0:
+          LCD_clearScreen();
+          LCD_setCursor(0,0);
+          LCD_writeStr("PonyFeeder 3000");
+          LCD_setCursor(0, 1);
+          now=time(NULL);
+          localtime_r(&now, &timeinfo);
+          sprintf(txtbuf, "TIME: %02d:%02d", timeinfo.tm_hour, timeinfo.tm_min);
+          LCD_writeStr(txtbuf);
+          break;
         case 1:
+          LCD_clearScreen();
+          LCD_setCursor(0,0);
+          LCD_writeStr("Alarm time for");
+          LCD_setCursor(0,1);
+          sprintf(txtbuf, "LOCK1: %s", times[0]);
+          LCD_writeStr(txtbuf);
           break;
         case 2:
+          LCD_clearScreen();
+          LCD_setCursor(0,0);
+          LCD_writeStr("Alarm time for");
+          LCD_setCursor(0,1);
+          sprintf(txtbuf, "LOCK2: %s", times[1]);
+          LCD_writeStr(txtbuf);
           break;
         case 3:
+          LCD_clearScreen();
+          LCD_setCursor(0,0);
+          LCD_writeStr("Alarm time for");
+          LCD_setCursor(0,1);
+          sprintf(txtbuf, "LOCK3: %s", times[2]);
+          LCD_writeStr(txtbuf);
           break;
         case 4:
+          LCD_clearScreen();
+          LCD_setCursor(0,0);
+          LCD_writeStr("Alarm time for");
+          LCD_setCursor(0,1);
+          sprintf(txtbuf, "LOCK4: %s", times[3]);
+          LCD_writeStr(txtbuf);
           break;
         case 5:
+          LCD_clearScreen();
+          LCD_setCursor(0,0);
+          LCD_writeStr("Alarm time for");
+          LCD_setCursor(0,1);
+          sprintf(txtbuf, "LOCK5: %s", times[4]);
+          LCD_writeStr(txtbuf);
           break;
         case 6:
+          LCD_clearScreen();
+          LCD_setCursor(0,0);
+          LCD_writeStr("Alarm time for");
+          LCD_setCursor(0,1);
+          sprintf(txtbuf, "LOCK6: %s", times[5]);
+          LCD_writeStr(txtbuf);
           break;
         default:
           screen_idx=0;

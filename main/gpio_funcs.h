@@ -25,6 +25,9 @@
 #define RIGHT_PIN 35
 #define CENTER_PIN 25
 
+// Time used for debouncing (in milliseconds)
+#define DEBOUNCE_MS 200
+
 #define BUTTON_PIN_SEL ((1ULL << LEFT_PIN) | (1ULL << RIGHT_PIN) | (1ULL << CENTER_PIN))
 
 void IRAM_ATTR write_lock_idx_isr(void* arg);
