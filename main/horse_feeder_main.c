@@ -37,8 +37,9 @@ SemaphoreHandle_t s_timer_semaphore;
 QueueHandle_t update_queue;
 // Global definition for screen update queue (used for sending screen idx and mode between tasks)
 QueueHandle_t screen_queue;
-// Global definition for mode select queue (used for sending mode flag to screen update task)
+// Used for sending information about the mode flag:
 QueueHandle_t select_mode_queue;
+
 
 //QueueHandle_t DPD_event_queue;
 //Global definition for button pin interrupt variables:
@@ -55,6 +56,7 @@ volatile uint32_t cdebounce_tick=0;
 portMUX_TYPE lmux=portMUX_INITIALIZER_UNLOCKED;
 portMUX_TYPE rmux=portMUX_INITIALIZER_UNLOCKED;
 portMUX_TYPE cmux=portMUX_INITIALIZER_UNLOCKED;
+portMUX_TYPE screen_mux=portMUX_INITIALIZER_UNLOCKED;
 
 static const char* TAG="MAIN";
 static const char* TAG_LOCK="PulseLock";
@@ -99,8 +101,6 @@ void init_LCD() {
   ESP_LOGI(TAG, "Starting up LCD");
   //LCD_quick_init(LCD_ADDR, SDA_PIN, SCL_PIN, LCD_COLS, LCD_ROWS);
   struct LCD_config lcd_conf;
-  lcd_conf.rows=LCD_ROWS;
-  lcd_conf.cols=LCD_COLS;
   lcd_conf.bitmode_flag=1;
   lcd_conf.two_line_flag=1;
   lcd_conf.display_flag=0;
@@ -160,12 +160,17 @@ void app_main(void)
       LCD_setCursor(6, 1);
       LCD_writeStr(buf);
     }
-    // Array of ints representing the screen flags
+    // Create array of integers for the screen flags
+    // We want to pass them as pointers to tasks, so
+    // they get updated in each task properly
+    // There are a total of three
+    // 1. Screen index == which "page" is displayed on screen
+    // 2. Select index == cursor position when setting the alarm
+    // 3. Mode flag == controls the behaviour of L/R buttons
     int* screen_flags = pvPortMalloc(3*sizeof(int));
-    screen_flags[0]=0; // First element is screen index
-    screen_flags[1]=0; // Second element is select index
-    screen_flags[2]=0; // Third element is mode flag 
-    int* mode_flag = &screen_flags[2];
+    screen_flags[0] = 0;
+    screen_flags[1] = 0;
+    screen_flags[2] = 0;
     
     s_timer_semaphore = xSemaphoreCreateBinary();
     update_queue = xQueueCreate(4, sizeof(time_t));
@@ -229,6 +234,7 @@ void app_main(void)
     xTaskCreate(&updateAlarm, "updateAlarm", 2048, NULL, 5, NULL);
     xTaskCreate(&updateScreenIdxLeft, "updateScreenIdxLeft", 2048, screen_flags, 5, NULL);
     xTaskCreate(&updateScreenIdxRight, "updateScreenIdxRight", 2048, screen_flags, 5, NULL);
+    int* mode_flag=&screen_flags[2];
     xTaskCreate(&updateSelectMode, "updateSelectMode", 2048, mode_flag, 5, NULL);
     //xTaskCreate(&writeIdxToFlash, "writeFlash", 2048, NULL, 6, NULL);
   }
@@ -259,42 +265,11 @@ void updateAlarm(void* param) {
   }
 }
 
-void updateSelectMode(void* param) {
-  int* mode_flag= (int *) param; 
-  int num_edges=0;
-  int debounce_time=0;
-  int last_state=0;
-  int curr_state=0;
-  for(;;) {
-    portENTER_CRITICAL(&cmux);
-    num_edges=cnum_edges;
-    debounce_time=cdebounce_tick;
-    last_state=cstate;
-    portEXIT_CRITICAL(&cmux);
-    curr_state=gpio_get_level(CENTER_PIN);
-    if ((num_edges != 0) && (curr_state==last_state) && \
-        ((xTaskGetTickCount() - debounce_time) > pdMS_TO_TICKS(DEBOUNCE_MS))) {
-      // if the button is registered as pushed, toggle between the modes
-      *mode_flag = (*mode_flag == 0) ? 1 : 0;
-      ESP_LOGI(TAG, "Mode flag toggled! Is now: %d", *mode_flag);
-      int mode=*mode_flag; // don't send pointer to queue
-      xQueueSend(select_mode_queue, (void *) &mode, portMAX_DELAY);
-      portENTER_CRITICAL(&cmux);
-      cnum_edges=0;
-      portEXIT_CRITICAL(&cmux);
-      vTaskDelay(pdMS_TO_TICKS(10));
-    }
-    else {
-      vTaskDelay(pdMS_TO_TICKS(10));
-    }
-  }
-}
-
 void updateScreenIdxLeft(void* param) {
-  int* screen_flags = (int *) param;
+  int* screen_flags = (int*) param;
   int* screen_idx = &screen_flags[0];
-  int* select_idx = &screen_flags[1];
-  int* mode_flag = &screen_flags[2];
+  int* select_idx = &screen_flags[1]; 
+  int* mode_flag = &screen_flags[2]; 
   int curr_state=0;
   int num_edges=0;
   int last_state=0;
@@ -321,37 +296,68 @@ void updateScreenIdxLeft(void* param) {
           idx=*screen_idx;
           ESP_LOGI(TAG, "screen idx is now: %d", idx);
         }
-        else { // Mode flag was non-zero
-          (*select_idx)--;
-          if (*select_idx < 0) {
-            *select_idx=4;
-          }
-          else if (*select_idx == 2) {
-            (*select_idx)--; // Jump over the ":" character
-          }
-          idx=*select_idx;
-          ESP_LOGI(TAG, "select idx is now: %d", idx);
+      else { // Mode flag was non-zero
+        (*select_idx)--;
+        if (*select_idx < 0) {
+          *select_idx=4;
         }
-        if (xQueueSend(screen_queue, (void *) &idx, pdMS_TO_TICKS(100) ) != pdPASS) {
-          ESP_LOGW(TAG, "Failed to update screen_idx");
+        else if (*select_idx == 2) {
+          (*select_idx)--; // Jump over the ":" character
         }
-        // Reset edge counter
-        portENTER_CRITICAL(&lmux);
-        lnum_edges=0;
-        portEXIT_CRITICAL(&lmux);
-        vTaskDelay(pdMS_TO_TICKS(10));
+        idx=*select_idx;
+        ESP_LOGI(TAG, "select idx is now: %d", idx);
+        }
+      if (xQueueSend(screen_queue, (void *) &idx, pdMS_TO_TICKS(100) ) != pdPASS) {
+        ESP_LOGW(TAG, "Failed to update screen_idx");
+      }
+      // Reset edge counter
+      portENTER_CRITICAL(&lmux);
+      lnum_edges=0;
+      portEXIT_CRITICAL(&lmux);
+      vTaskDelay(pdMS_TO_TICKS(10));
+    } 
+    else {
+      vTaskDelay(pdMS_TO_TICKS(10));
+    }
+  }
+}
+
+void updateSelectMode(void* param) {
+  int* mode_flag = (int*) param;
+  int num_edges=0;
+  int debounce_time=0;
+  int last_state=0;
+  int curr_state=0;
+  for(;;) {
+    portENTER_CRITICAL(&cmux);
+    num_edges=cnum_edges;
+    debounce_time=cdebounce_tick;
+    last_state=cstate;
+    portEXIT_CRITICAL(&cmux);
+    curr_state=gpio_get_level(CENTER_PIN);
+    if ((num_edges != 0) && (curr_state==last_state) && \
+        ((xTaskGetTickCount() - debounce_time) > pdMS_TO_TICKS(DEBOUNCE_MS))) {
+      // if the button is registered as pushed, toggle between the modes
+      *mode_flag = (*mode_flag == 0) ? 1 : 0;
+      //ESP_LOGI(TAG, "Mode flag toggled! Is now: %d", *mode_flag);
+      int mode = *mode_flag;
+      xQueueSend(select_mode_queue, (void *) &mode, portMAX_DELAY);
+      portENTER_CRITICAL(&cmux);
+      cnum_edges=0;
+      portEXIT_CRITICAL(&cmux);
+      vTaskDelay(pdMS_TO_TICKS(10));
     }
     else {
       vTaskDelay(pdMS_TO_TICKS(10));
-    } 
+    }
   }
 }
 
 void updateScreenIdxRight(void* param) {
-  int* screen_flags = (int *) param;
+  int* screen_flags = (int*) param;
   int* screen_idx = &screen_flags[0];
-  int* select_idx = &screen_flags[1];
-  int* mode_flag = &screen_flags[2];
+  int* select_idx = &screen_flags[1]; 
+  int* mode_flag = &screen_flags[2]; 
   int curr_state=0;
   int num_edges=0;
   int last_state=0;
@@ -377,30 +383,30 @@ void updateScreenIdxRight(void* param) {
           idx=*screen_idx;
           ESP_LOGI(TAG, "screen idx is now: %d", idx);
         }
-        else { // Mode flag was non-zero
-          (*select_idx)++;
-          if (*select_idx > 4) {
-            *select_idx=0;
-          }
-          else if (*select_idx == 2) {
-            (*select_idx)++; // Jump over the ":" character
-          }
-          idx=*select_idx;
-          ESP_LOGI(TAG, "select idx is now: %d", idx);
+      else { // Mode flag was non-zero
+        (*select_idx)++;
+        if (*select_idx > 4) {
+          *select_idx=0;
         }
-        if (xQueueSend(screen_queue, (void *) &idx, pdMS_TO_TICKS(100) ) != pdPASS) {
-          ESP_LOGW(TAG, "Failed to update screen_idx");
+        else if (*select_idx == 2) {
+          (*select_idx)++; // Jump over the ":" character
         }
-        // Reset edge counter
-        portENTER_CRITICAL(&rmux);
-        rnum_edges=0;
-        portEXIT_CRITICAL(&rmux);
-        vTaskDelay(pdMS_TO_TICKS(10));
+        idx=*select_idx;
+        ESP_LOGI(TAG, "select idx is now: %d", idx);
+        }
+      if (xQueueSend(screen_queue, (void *) &idx, pdMS_TO_TICKS(100) ) != pdPASS) {
+        ESP_LOGW(TAG, "Failed to update screen_idx");
       }
+      // Reset edge counter
+      portENTER_CRITICAL(&rmux);
+      rnum_edges=0;
+      portEXIT_CRITICAL(&rmux);
+      vTaskDelay(pdMS_TO_TICKS(10));
+    } 
     else {
       vTaskDelay(pdMS_TO_TICKS(10));
     }
-  } 
+  }
 }
   
 void pulseLock(void* param) {
@@ -461,6 +467,46 @@ void pulseLock(void* param) {
   }
 }
 
+void LCD_print(int screen_idx, int mode_flag, char* timestamp) {
+  time_t now;
+  struct tm timeinfo;
+  char txtbuf[20] = {0};
+  ESP_LOGI(TAG, "Went to print");
+  ESP_LOGI(TAG, "mode_flag is %d", mode_flag);
+  ESP_LOGI(TAG, "str is %s", timestamp);
+  if (mode_flag==0) {
+    if (screen_idx == 0) {
+      LCD_clearScreen();
+      LCD_setCursor(0,0);
+      LCD_writeStr("PonyFeeder 3000");
+      LCD_setCursor(0, 1);
+      now=time(NULL);
+      localtime_r(&now, &timeinfo);
+      sprintf(txtbuf, "TIME: %02d:%02d", timeinfo.tm_hour, timeinfo.tm_min);
+      LCD_writeStr(txtbuf);
+    }
+    else {
+      LCD_clearScreen();
+      LCD_setCursor(0,0);
+      LCD_writeStr("Alarm time for");
+      LCD_setCursor(0,1);
+      sprintf(txtbuf, "LOCK%d: %s", screen_idx, timestamp);
+      LCD_writeStr(txtbuf);
+    }
+  }
+  else {
+    if (screen_idx==0) {
+      screen_idx++; // display first alarm time
+    }
+    LCD_clearScreen();
+    LCD_setCursor(0,1);
+    LCD_writeStr("      ^    ");
+    LCD_setCursor(0,0);
+    sprintf(txtbuf, "LOCK%d: %s", screen_idx, timestamp);
+    LCD_writeStr(txtbuf);
+  }
+}
+
 void LCD_updater(void* param)
 /*
    This task should run every 60 seconds or so
@@ -476,10 +522,11 @@ void LCD_updater(void* param)
   }
   char txtbuf[16];
   int screen_idx=0;
-  int mode_flag=0;
   int select_idx=0;
-  int prev=0;
-  int changed_mode=0;
+  int idx=0;
+  int mode_changed=0;
+  int mode_flag=0;
+  int first=1;
   time_t now;
   struct tm timeinfo;
   TickType_t xLastWakeTime;
@@ -487,34 +534,21 @@ void LCD_updater(void* param)
   TickType_t xFreq = 0;
   xLastWakeTime = xTaskGetTickCount();
   while (1) {
-    // Try to get mode_flag from queue
-    xQueueReceive(select_mode_queue, &mode_flag, pdMS_TO_TICKS(10));
     // Wait until it's time to update or we receive index from queue
     now=time(NULL);
-    xFreq = pdMS_TO_TICKS((60 - (now - (now / 60)*60))*(1000));
-    if (!mode_flag) { // If we are in query mode, capture queue output to screen_idx
-      if (changed_mode) {
-        if (screen_idx==0) {
-          LCD_clearScreen();
-          LCD_setCursor(0,0);
-          LCD_writeStr("PonyFeeder 3000");
-          LCD_setCursor(0, 1);
-          now=time(NULL);
-          localtime_r(&now, &timeinfo);
-          sprintf(txtbuf, "TIME: %02d:%02d", timeinfo.tm_hour, timeinfo.tm_min);
-          LCD_writeStr(txtbuf);
-        }
-        else if ((screen_idx <= 6) && (screen_idx >= 1)) {
-          LCD_clearScreen();
-          LCD_setCursor(0,0);
-          LCD_writeStr("Alarm time for");
-          LCD_setCursor(0,1);
-          sprintf(txtbuf, "LOCK1: %s", times[screen_idx-1]);
-          LCD_writeStr(txtbuf);
-        }
-        else {
-          changed_mode=0;
-          screen_idx=0;
+    if (mode_changed) {
+      xFreq=pdMS_TO_TICKS(10);
+    }
+    else {
+      xFreq = pdMS_TO_TICKS((60 - (now - (now / 60)*60))*(1000));
+    }
+    if (xQueueReceive(screen_queue, &idx, xFreq) == pdFALSE) {
+      if (xQueueReceive(select_mode_queue, &mode_flag, pdMS_TO_TICKS(10))==pdFALSE) {
+        screen_idx=idx;
+        mode_changed=0;
+        first=1;
+        if (screen_idx == 0) {
+          vTaskDelayUntil(&xLastWakeTime, xFreq);
           LCD_clearScreen();
           LCD_setCursor(0,0);
           LCD_writeStr("PonyFeeder 3000");
@@ -526,163 +560,55 @@ void LCD_updater(void* param)
         }
       }
       else {
-        ESP_LOGI(TAG, "Waiting %d milliseconds until next screen refresh", xFreq);
-        prev=screen_idx;
-        xQueueReceive(screen_queue, &screen_idx, xFreq); // wait until next full minute or until we receive idx
-        if (xQueueReceive(select_mode_queue, &mode_flag, pdMS_TO_TICKS(10)) == pdFALSE) { // Check if mode changed during waiting
-          // Update display based on current screen idx
-          changed_mode=0;
-          switch (screen_idx) {
-            case 0: 
-              LCD_clearScreen();
-              LCD_setCursor(0,0);
-              LCD_writeStr("PonyFeeder 3000");
-              LCD_setCursor(0, 1);
-              now=time(NULL);
-              localtime_r(&now, &timeinfo);
-              sprintf(txtbuf, "TIME: %02d:%02d", timeinfo.tm_hour, timeinfo.tm_min);
-              LCD_writeStr(txtbuf);
-              break;
-            case 1:
-              LCD_clearScreen();
-              LCD_setCursor(0,0);
-              LCD_writeStr("Alarm time for");
-              LCD_setCursor(0,1);
-              sprintf(txtbuf, "LOCK1: %s", times[0]);
-              LCD_writeStr(txtbuf);
-              break;
-            case 2:
-              LCD_clearScreen();
-              LCD_setCursor(0,0);
-              LCD_writeStr("Alarm time for");
-              LCD_setCursor(0,1);
-              sprintf(txtbuf, "LOCK2: %s", times[1]);
-              LCD_writeStr(txtbuf);
-              break;
-            case 3:
-              LCD_clearScreen();
-              LCD_setCursor(0,0);
-              LCD_writeStr("Alarm time for");
-              LCD_setCursor(0,1);
-              sprintf(txtbuf, "LOCK3: %s", times[2]);
-              LCD_writeStr(txtbuf);
-              break;
-            case 4:
-              LCD_clearScreen();
-              LCD_setCursor(0,0);
-              LCD_writeStr("Alarm time for");
-              LCD_setCursor(0,1);
-              sprintf(txtbuf, "LOCK4: %s", times[3]);
-              LCD_writeStr(txtbuf);
-              break;
-            case 5:
-              LCD_clearScreen();
-              LCD_setCursor(0,0);
-              LCD_writeStr("Alarm time for");
-              LCD_setCursor(0,1);
-              sprintf(txtbuf, "LOCK5: %s", times[4]);
-              LCD_writeStr(txtbuf);
-              break;
-            case 6:
-              LCD_clearScreen();
-              LCD_setCursor(0,0);
-              LCD_writeStr("Alarm time for");
-              LCD_setCursor(0,1);
-              sprintf(txtbuf, "LOCK6: %s", times[5]);
-              LCD_writeStr(txtbuf);
-              break;
-            default:
-              screen_idx=0;
-              break;
-            } 
-        } 
+        mode_changed=1;
+        first=1;
+        select_idx=idx;
+        ESP_LOGI(TAG, "Changed mode!");
+      }
+    } 
+    // Received something from queue, display alarm times
+    else {
+      if (first) {
+        xQueueReceive(select_mode_queue, &mode_flag, pdMS_TO_TICKS(10));
+        if (mode_flag==0) {
+          screen_idx=idx;
+        }
         else {
-          screen_idx=prev; // If we are waiting for button press in queue, it defaults to screen idx.
-          ESP_LOGI(TAG, "Changed mode. Screen idx is now %d", screen_idx);
-          changed_mode=1;
+          select_idx=idx;
+          ESP_LOGI(TAG,"select_idx is: %d", select_idx);
+          ESP_LOGI(TAG,"screen_idx is: %d", screen_idx);
+          ESP_LOGI(TAG,"Mode_flag is: %d", mode_flag);
+        }
+        first=0;
+        mode_changed=0;
+        if (screen_idx>0) {
+          LCD_print(screen_idx, mode_flag, times[screen_idx-1]);
+        }
+        else {
+          LCD_print(screen_idx, mode_flag, times[0]);
         }
       }
-    }
-    else { // If we are in alarm set mode, capture queue output to select_idx
-      ESP_LOGI(TAG, "In alarm set_mode");
-      if (!changed_mode) {
-        xQueueReceive(screen_queue, &select_idx, xFreq);
+      else if (xQueueReceive(select_mode_queue, &mode_flag, pdMS_TO_TICKS(10))==pdFALSE) {
+        if (mode_flag==0) {
+          screen_idx=idx;
+        }
+        else {
+          select_idx=idx;
+        }
+        mode_changed=0;
+        if (screen_idx>0) {
+          LCD_print(screen_idx, mode_flag, times[screen_idx-1]);
+        }
+        else {
+          LCD_print(screen_idx, mode_flag, times[0]);
+        }
       }
       else {
-        changed_mode=0;
+        mode_changed=1;
+        first=1;
+        screen_idx=idx;
+        ESP_LOGI(TAG, "Changed mode!");
       }
-      // Parse string based on "cursor" position
-      memset(txtbuf, 0, sizeof(txtbuf));
-      for (uint8_t i=0; i<8+select_idx; i++) {
-       if (i<7+select_idx) {
-         strcat(txtbuf, " ");
-       }
-       else {
-         strcat(txtbuf, "^");
-       }
-      }
-      ESP_LOGI(TAG, "screen_idx at alarm set is %d", screen_idx);
-      switch (screen_idx) {
-        case 0:
-          screen_idx++; // Do not display regular time in this mode, jump directly to case 1
-        case 1:
-         LCD_clearScreen();
-         LCD_setCursor(0,1);
-         LCD_writeStr(txtbuf);
-         LCD_setCursor(0,0);
-         sprintf(txtbuf, "LOCK1: %s", times[0]);
-         LCD_writeStr(txtbuf);
-         break;
-        case 2:
-         LCD_clearScreen();
-         LCD_setCursor(0,1);
-         LCD_writeStr(txtbuf);
-         LCD_setCursor(0,0);
-         sprintf(txtbuf, "LOCK2: %s", times[1]);
-         LCD_writeStr(txtbuf);
-         break;
-        case 3:
-         LCD_clearScreen();
-         LCD_setCursor(0,1);
-         LCD_writeStr(txtbuf);
-         LCD_setCursor(0,0);
-         sprintf(txtbuf, "LOCK3: %s", times[2]);
-         LCD_writeStr(txtbuf);
-         break;
-        case 4:
-         LCD_clearScreen();
-         LCD_setCursor(0,1);
-         LCD_writeStr(txtbuf);
-         LCD_setCursor(0,0);
-         sprintf(txtbuf, "LOCK4: %s", times[3]);
-         LCD_writeStr(txtbuf);
-         break;
-        case 5:
-         LCD_clearScreen();
-         LCD_setCursor(0,1);
-         LCD_writeStr(txtbuf);
-         LCD_setCursor(0,0);
-         sprintf(txtbuf, "LOCK5: %s", times[4]);
-         LCD_writeStr(txtbuf);
-         break;
-        case 6:
-         LCD_clearScreen();
-         LCD_setCursor(0,1);
-         LCD_writeStr(txtbuf);
-         LCD_setCursor(0,0);
-         sprintf(txtbuf, "LOCK6: %s", times[5]);
-         LCD_writeStr(txtbuf);
-         break;
-        default:
-         screen_idx=0;
-         break;
-         } 
-        }
     }
-    //else { // mode_flag was non-zero, set alarm times
-      // Left/right buttons now control the position of the selector
-      //switch (screen_idx) {
-      //} 
-    //}
-  //}
+  }
 }
