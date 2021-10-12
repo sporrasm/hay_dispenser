@@ -14,7 +14,7 @@
 #include "gpio_funcs.h"
 #include "AIP31068L.h"
 
-#define T_OFFS 7*15//24*3600 // Time in seconds to offset the array values once it has been looped over
+#define T_OFFS 24*3600 // Time in seconds to offset the array values once it has been looped over
 #define LCD_ADDR 0x3e
 #define SDA_PIN  19
 #define SCL_PIN  18
@@ -97,6 +97,8 @@ void init_LCD() {
   ESP_LOGI(TAG, "Starting up LCD");
   //LCD_quick_init(LCD_ADDR, SDA_PIN, SCL_PIN, LCD_COLS, LCD_ROWS);
   struct LCD_config lcd_conf;
+  lcd_conf.rows=LCD_ROWS;
+  lcd_conf.cols=LCD_COLS;
   lcd_conf.bitmode_flag=1;
   lcd_conf.two_line_flag=1;
   lcd_conf.display_flag=0;
@@ -116,9 +118,8 @@ void init_LCD() {
 
 void app_main(void)
 {
-  // The parameter to strptime must given as hour (0-23) and
-  //char* times[NUM_LOCKS] = {"01:36:00", "02:30:00", "04:30:00", "06:30:00", "08:30:00", "10:30:00"};
-  char* times[NUM_LOCKS] = {"18:25:00", "18:25:15", "18:25:30", "18:25:45", "18:26:00", "18:26:15"};
+  // The parameter to strptime must given as hour (0-23) and minute (0-59)
+  char* times[NUM_LOCKS] = {"21:00:00", "00:00:00", "03:00:00", "06:00:00", "09:00:00", "12:00:00"};
   // Table mapping lock indices to GPIO pin numbers
   char buf[6] = { 0 };
   int init_stat=init_horse_feeder();
@@ -177,14 +178,6 @@ void app_main(void)
       ESP_LOGW(TAG, "Queue creation failed, restarting in 5 s...");
       vTaskDelay(pdMS_TO_TICKS(5000));
       esp_restart();
-    }
-    //if (DPD_event_queue == NULL) {
-    //  ESP_LOGW(TAG, "Queue creation failed, restarting in 5 s...");
-    //  vTaskDelay(pdMS_TO_TICKS(5000));
-    //  esp_restart();
-    //}
-    for (unsigned int i = 0; i<6; i++) {
-      printf("Time value at arr[%d] = %ld\n", i, arr[i]);
     }
 
     time_t now = time(NULL);
@@ -343,7 +336,7 @@ void pulseLock(void* param) {
   time_t* t_arr = (time_t*) param;
   time_t now = 0, diff = 0;
   int lock_idx = 0;
-  int idxToPin[NUM_LOCKS] = { LOCK_GPIO_0, LOCK_GPIO_1, LOCK_GPIO_2, LOCK_GPIO_3, LOCK_GPIO_4, LOCK_GPIO_5};
+  int idxToPin[NUM_LOCKS] = { LOCK_GPIO_0, LOCK_GPIO_1, LOCK_GPIO_2, LOCK_GPIO_3, LOCK_GPIO_4, LOCK_GPIO_5 };
 
   for (;;) {
     // Wait until ISR gives semaphore, increment lock_idx counter

@@ -54,8 +54,15 @@ static esp_err_t i2c_init(void)
     .scl_pullup_en = GPIO_PULLUP_ENABLE,
     .master.clk_speed = 100000
   };
-  i2c_param_config(I2C_NUM_0, &conf);
-  i2c_driver_install(I2C_NUM_0, I2C_MODE_MASTER, 0, 0, 0);
+
+  if (i2c_param_config(I2C_NUM_0, &conf)!=ESP_OK) {
+    ESP_LOGW(TAG, "WARN: i2c_param_config return ESP_ERR_INVALID_ARG");
+    return ESP_FAIL;
+  }
+  if (i2c_driver_install(I2C_NUM_0, I2C_MODE_MASTER, 0, 0, 0) != ESP_OK) {
+    ESP_LOGW(TAG, "WARN: i2c_driver_install ESP_ERR_INVALID_ARG");
+    return ESP_FAIL;
+  }
   return ESP_OK;
 }
 
@@ -77,21 +84,22 @@ void LCD_quick_init(uint8_t addr, uint8_t sdaPin, uint8_t clkPin, uint8_t cols, 
   SCL_pin = clkPin;
   LCD_cols = cols;
   LCD_rows = rows;
-  i2c_init();
-  // Wait 4 ticks
-  vTaskDelay(40 / portTICK_RATE_MS);
-  // Reset the LCD controller (apply 8-bit, two-line and 5x10 character modes):
-  LCD_command(LCD_RESET | LCD_8BIT_MODE | LCD_LINES | LCD_PIXELS);
-  ets_delay_us(100); // 100 us delay
-  // Turn on display
-  LCD_command(LCD_DISPCTRL | LCD_DISPLAY_ON);
-  ets_delay_us(100);
-  // Clear the LCD screen
-  LCD_command(LCD_CLEAR);
-  // Wait 2 ticks
-  vTaskDelay(20 / portTICK_RATE_MS);
-  // Set entry mode (from left to right) 
-  LCD_command(LCD_ENTRYMODE | LCD_ENTRYMODE_INCR);
+  if (i2c_init() == ESP_OK) {
+    // Wait 4 ticks
+    vTaskDelay(40 / portTICK_RATE_MS);
+    // Reset the LCD controller (apply 8-bit, two-line and 5x10 character modes):
+    LCD_command(LCD_RESET | LCD_8BIT_MODE | LCD_LINES | LCD_PIXELS);
+    ets_delay_us(100); // 100 us delay
+    // Turn on display
+    LCD_command(LCD_DISPCTRL | LCD_DISPLAY_ON);
+    ets_delay_us(100);
+    // Clear the LCD screen
+    LCD_command(LCD_CLEAR);
+    // Wait 2 ticks
+    vTaskDelay(20 / portTICK_RATE_MS);
+    // Set entry mode (from left to right) 
+    LCD_command(LCD_ENTRYMODE | LCD_ENTRYMODE_INCR);
+  }
 }
 
 void LCD_init(uint8_t addr, uint8_t sdaPin, uint8_t clkPin, struct LCD_config* LCD_conf) {
@@ -125,21 +133,22 @@ void LCD_init(uint8_t addr, uint8_t sdaPin, uint8_t clkPin, struct LCD_config* L
   if (LCD_conf->shiftmode_flag)
     entry_byte |= LCD_ENTRYMODE_SHIFT;
 
-  i2c_init();
-  // Wait 4 ticks
-  vTaskDelay(40 / portTICK_RATE_MS);
-  // Reset the LCD controller (apply 8-bit, two-line and 5x10 character modes):
-  LCD_command(reset_byte);
-  ets_delay_us(100); // 100 us delay
-  // Turn on display
-  LCD_command(display_byte);
-  ets_delay_us(100);
-  // Clear the LCD screen
-  LCD_command(LCD_CLEAR);
-  // Wait 2 ticks
-  vTaskDelay(20 / portTICK_RATE_MS);
-  // Set entry mode (from left to right) 
-  LCD_command(entry_byte);
+  if (i2c_init() == ESP_OK) {
+    // Wait 4 ticks
+    vTaskDelay(40 / portTICK_RATE_MS);
+    // Reset the LCD controller (apply 8-bit, two-line and 5x10 character modes):
+    LCD_command(reset_byte);
+    ets_delay_us(100); // 100 us delay
+    // Turn on display
+    LCD_command(display_byte);
+    ets_delay_us(100);
+    // Clear the LCD screen
+    LCD_command(LCD_CLEAR);
+    // Wait 2 ticks
+    vTaskDelay(20 / portTICK_RATE_MS);
+    // Set entry mode (from left to right) 
+    LCD_command(entry_byte);
+  }
 }
 
 void LCD_setCursor(uint8_t col, uint8_t row) {
@@ -199,7 +208,7 @@ static void LCD_writeByte(uint8_t byte, uint8_t mode) {
   // Set stop bit 
   ESP_ERROR_CHECK(i2c_master_stop(cmd));
   // Send to slave
-  ESP_ERROR_CHECK(i2c_master_cmd_begin(I2C_NUM_0, cmd, 1000/portTICK_PERIOD_MS));
+  ESP_ERROR_CHECK_WITHOUT_ABORT(i2c_master_cmd_begin(I2C_NUM_0, cmd, 1000/portTICK_PERIOD_MS));
   // Free link
   i2c_cmd_link_delete(cmd);   
 }
