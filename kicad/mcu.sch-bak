@@ -58,10 +58,6 @@ Wire Wire Line
 	5700 3200 5600 3200
 Wire Wire Line
 	5100 3300 5700 3300
-Wire Wire Line
-	6500 4000 6900 4000
-Wire Wire Line
-	6500 3900 6900 3900
 Text Label 6900 4000 0    50   ~ 0
 SCL
 Text Label 6900 3900 0    50   ~ 0
@@ -189,10 +185,10 @@ NoConn ~ 6500 4700
 NoConn ~ 6500 3500
 NoConn ~ 6500 3600
 $Comp
-L power:+3.3V #PWR?
+L power:+3.3V #PWR0101
 U 1 1 61F3650F
 P 5600 3200
-F 0 "#PWR?" H 5600 3050 50  0001 C CNN
+F 0 "#PWR0101" H 5600 3050 50  0001 C CNN
 F 1 "+3.3V" H 5615 3373 50  0000 C CNN
 F 2 "" H 5600 3200 50  0001 C CNN
 F 3 "" H 5600 3200 50  0001 C CNN
@@ -202,4 +198,38 @@ $EndComp
 Connection ~ 5600 3200
 Wire Wire Line
 	5600 3200 5400 3200
+Wire Wire Line
+	6500 3900 7350 3900
+$Comp
+L Device:R R?
+U 1 1 61E5E901
+P 7350 3750
+F 0 "R?" H 7420 3796 50  0000 L CNN
+F 1 "3k3" H 7420 3705 50  0000 L CNN
+F 2 "Resistor_SMD:R_0805_2012Metric_Pad1.15x1.40mm_HandSolder" V 7280 3750 50  0001 C CNN
+F 3 "~" H 7350 3750 50  0001 C CNN
+	1    7350 3750
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:R R?
+U 1 1 61E5F0E3
+P 7575 3850
+F 0 "R?" H 7645 3896 50  0000 L CNN
+F 1 "3k3" H 7645 3805 50  0000 L CNN
+F 2 "Resistor_SMD:R_0805_2012Metric_Pad1.15x1.40mm_HandSolder" V 7505 3850 50  0001 C CNN
+F 3 "~" H 7575 3850 50  0001 C CNN
+	1    7575 3850
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	6500 4000 7575 4000
+Wire Wire Line
+	7575 3700 7575 3575
+Wire Wire Line
+	7350 3600 7350 3575
+Wire Wire Line
+	7350 3575 7575 3575
+Text Label 7450 3575 0    50   ~ 0
+3V3
 $EndSCHEMATC
