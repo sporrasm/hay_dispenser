@@ -14,7 +14,6 @@
 #include "gpio_funcs.h"
 #include "AIP31068L.h"
 
-#define T_OFFS 24*3600 // Time in seconds to offset the array values once it has been looped over
 #define LCD_ADDR 0x3e
 #define SDA_PIN  19
 #define SCL_PIN  18
@@ -23,6 +22,7 @@
 #define NUM_LOCKS 6 // Number of locks in dispenser array
 #define STRLEN 8 // Length of one time stamp string, not counting the null byte
 #define LOCK_MS 500 // Time to pulse the lock in milliseconds
+#define TESTMODE 1 // 0 for normal operation
 
 void LCD_updater(void* param);
 void pulseLock(void* param);
@@ -145,7 +145,20 @@ void app_main(void)
     memset(&tv, 0, sizeof(tv)); // Initialize
     tv.tv_sec=currtime;
     settimeofday(&tv, NULL);
-    time_t* arr=timeFromString(times, sizeof(times) / sizeof(times[0]));
+
+    time_t* arr = NULL;
+    if (!TESTMODE) {
+      ESP_LOGI(TAG, "Initializing in feeding mode!");
+      arr = timeFromString(times, sizeof(times) / sizeof(times[0]));
+    }
+    else {
+        ESP_LOGI(TAG, "Initializing in testmode!");
+        arr = malloc(sizeof(time_t) * (NUM_LOCKS+1));
+        memset(arr, 0, (NUM_LOCKS+1)*sizeof(time_t));
+        for (int i = 0; i < NUM_LOCKS; i++) {
+          arr[i] = currtime + (i+1)*15;
+        }
+    }
     sort_time(arr, sizeof(times) / sizeof(times[0])); 
     // Init LCD, start task to update time
     LCD_home();
@@ -334,10 +347,16 @@ void pulseLock(void* param) {
     3. Associate lock_idx = 0 with this time, this assures 
   */
   time_t* t_arr = (time_t*) param;
-  time_t now = 0, diff = 0;
+  time_t now = 0, diff = 0, offs=0;
   int lock_idx = 0;
   int idxToPin[NUM_LOCKS] = { LOCK_GPIO_0, LOCK_GPIO_1, LOCK_GPIO_2, LOCK_GPIO_3, LOCK_GPIO_4, LOCK_GPIO_5 };
-
+  if (!TESTMODE) {
+    offs=24*3600;
+  }
+  else {
+    offs=15*7;
+  }
+    
   for (;;) {
     // Wait until ISR gives semaphore, increment lock_idx counter
     xSemaphoreTake(s_timer_semaphore, portMAX_DELAY);
@@ -362,9 +381,9 @@ void pulseLock(void* param) {
     } 
     else {
       ESP_LOGI(TAG_LOCK, "Time diff was negative! (%ld seconds)", diff);
-      ESP_LOGI(TAG_LOCK, "Increasing time_arr values by one day");
+      ESP_LOGI(TAG_LOCK, "Increasing time_arr values %ld seconds.", offs);
       for (uint8_t i = 0; i < NUM_LOCKS; i++) {
-        *(t_arr+i) += T_OFFS;
+        *(t_arr+i) += offs;
       }
       sort_time(t_arr, NUM_LOCKS);
       now=time(NULL);
