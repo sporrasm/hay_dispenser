@@ -7,18 +7,12 @@
 #include "driver/gpio.h"
 
 // GPIO pins controlling the locks. Lock 0 is the bottom-most lock
-//#define LOCK_GPIO_0 4
-//#define LOCK_GPIO_1 21
-//#define LOCK_GPIO_2 23
-//#define LOCK_GPIO_3 22
-//#define LOCK_GPIO_4 32
-//#define LOCK_GPIO_5 33
-#define LOCK_GPIO_0 33
-#define LOCK_GPIO_1 32
-#define LOCK_GPIO_2 21
-#define LOCK_GPIO_3 4
-#define LOCK_GPIO_4 22
-#define LOCK_GPIO_5 23
+#define LOCK_GPIO_0 23
+#define LOCK_GPIO_1 22
+#define LOCK_GPIO_2 4
+#define LOCK_GPIO_3 21
+#define LOCK_GPIO_4 32
+#define LOCK_GPIO_5 33
 // Bit mask for output pins (is there a more reasonable way of doing this definition?)
 #define GPIO_OUTPUT_PIN_SEL ((1ULL << LOCK_GPIO_0) | (1ULL << LOCK_GPIO_1) \
     | (1ULL << LOCK_GPIO_2) | (1ULL << LOCK_GPIO_3) | (1ULL << LOCK_GPIO_4) \
