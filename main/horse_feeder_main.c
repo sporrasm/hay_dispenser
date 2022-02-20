@@ -22,7 +22,7 @@
 #define NUM_LOCKS 6 // Number of locks in dispenser array
 #define STRLEN 8 // Length of one time stamp string, not counting the null byte
 #define LOCK_MS 500 // Time to pulse the lock in milliseconds
-#define TESTMODE 1 // 0 for normal operation
+#define TESTMODE 0 // 0 for normal operation
 
 void LCD_updater(void* param);
 void pulseLock(void* param);
@@ -354,7 +354,7 @@ void pulseLock(void* param) {
     offs=24*3600;
   }
   else {
-    offs=15*7;
+    offs=15*6;
   }
     
   for (;;) {
