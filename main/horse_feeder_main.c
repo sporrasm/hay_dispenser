@@ -20,19 +20,9 @@
 #define SCL_PIN  18
 #define LCD_COLS 16 
 #define LCD_ROWS 2
-#ifdef CONFIG_LCD_ENABLED
-  #define LCD_ENABLED 1
-#else
-  #define LCD_ENABLED 0
-#endif
 #define NUM_LOCKS 6 // Number of locks in dispenser array
 #define STRLEN 8 // Length of one time stamp string, not counting the null byte
 #define LOCK_MS 500 // Time to pulse the lock in milliseconds
-#ifdef CONFIG_FEEDER_TESTMODE
-  #define TESTMODE 1 // 0 for normal operation
-#else
-  #define TESTMODE 0
-#endif
 
 void LCD_updater(void* param);
 void pulseLock(void* param);
@@ -136,10 +126,10 @@ void app_main(void)
   if (init_stat != 0) {
     ESP_LOGW(TAG, "Initialization failed!");
   }
-  if (LCD_ENABLED) {
-    ESP_LOGI(TAG, "LCD configured through menuconfig! Initializing LCD.");
-    init_LCD();
-  }
+#ifdef CONFIG_LCD_ENABLED
+  ESP_LOGI(TAG, "LCD configured through menuconfig! Initializing LCD.");
+  init_LCD();
+#endif
   int wifi_conn_stat=0;
   ESP_LOGI(TAG, "Initializing WiFi");
   //wifi_conn_stat=conn_wifi();
@@ -161,21 +151,30 @@ void app_main(void)
     settimeofday(&tv, NULL);
 
     time_t* arr = NULL;
-    if (!TESTMODE) {
-      wifi_log_i(TAG, "%s", "Initializing in feeding mode!");
-      arr = timeFromString(times, sizeof(times) / sizeof(times[0]));
+    //if (!TESTMODE) {
+    //  wifi_log_i(TAG, "%s", "Initializing in feeding mode!");
+    //  arr = timeFromString(times, sizeof(times) / sizeof(times[0]));
+    //}
+    //else {
+    //    wifi_log_i(TAG, "%s", "Initializing in testmode!");
+    //    arr = malloc(sizeof(time_t) * (NUM_LOCKS+1));
+    //    memset(arr, 0, (NUM_LOCKS+1)*sizeof(time_t));
+    //    for (int i = 0; i < NUM_LOCKS; i++) {
+    //      arr[i] = currtime + (i+1)*CONFIG_TESTMODE_INTERVAL;
+    //    }
+    //}
+#ifdef CONFIG_FEEDER_TESTMODE
+    arr = malloc(sizeof(time_t) * (NUM_LOCKS+1));
+    memset(arr, 0, (NUM_LOCKS+1)*sizeof(time_t));
+    for (int i = 0; i < NUM_LOCKS; i++) {
+      arr[i] = currtime + (i+1)*CONFIG_TESTMODE_INTERVAL;
     }
-    else {
-        wifi_log_i(TAG, "%s", "Initializing in testmode!");
-        arr = malloc(sizeof(time_t) * (NUM_LOCKS+1));
-        memset(arr, 0, (NUM_LOCKS+1)*sizeof(time_t));
-        for (int i = 0; i < NUM_LOCKS; i++) {
-          arr[i] = currtime + (i+1)*CONFIG_TESTMODE_INTERVAL;
-        }
-    }
+#else
+    arr=timeFromString(times,sizeof(times)/sizeof(times[0]));
+#endif
     sort_time(arr, sizeof(times) / sizeof(times[0])); 
     //  start task to update time on LCD
-    if (LCD_ENABLED) {
+#ifdef CONFIG_LCD_ENABLED
       LCD_home();
       LCD_clearScreen();
       LCD_writeStr("PonyFeeder 3000");
@@ -185,14 +184,6 @@ void app_main(void)
         LCD_setCursor(6, 1);
         LCD_writeStr(buf);
     }
-      int* screen_idx = pvPortMalloc(sizeof(int));
-      *screen_idx=0;
-      screen_queue = xQueueCreate(4, sizeof(int));
-      if (screen_queue == NULL) {
-        ESP_LOGW(TAG, "Queue creation failed, restarting in 5 s...");
-        vTaskDelay(pdMS_TO_TICKS(5000));
-        esp_restart();
-      }
       // Create array of strings for displaying the alarm times
       char** time_arr = pvPortMalloc(NUM_LOCKS * sizeof(char*));
       for (uint8_t i = 0; i < NUM_LOCKS; i++) {
@@ -201,12 +192,22 @@ void app_main(void)
           ESP_LOGI(TAG,"Succesfully dynamically allocated. Array element at idx %d is %s", i, time_arr[i]);
         }
       }
-      // Create LCD updater task
-      xTaskCreate(&LCD_updater, "LCD_updater", 2048, time_arr, 5, NULL);
+#ifdef CONFIG_BUTTONS_ENABLED
+      int* screen_idx = pvPortMalloc(sizeof(int));
+      *screen_idx=0;
+      screen_queue = xQueueCreate(4, sizeof(int));
+      if (screen_queue == NULL) {
+        ESP_LOGW(TAG, "Queue creation failed, restarting in 5 s...");
+        vTaskDelay(pdMS_TO_TICKS(5000));
+        esp_restart();
+      }
       // Tasks to update screen index (for chaging the view)
       xTaskCreate(&updateScreenIdxLeft, "updateScreenIdxLeft", 2048, screen_idx, 5, NULL);
       xTaskCreate(&updateScreenIdxRight, "updateScreenIdxRight", 2048, screen_idx, 5, NULL);
-    } 
+#endif
+      // Create LCD updater task
+      xTaskCreate(&LCD_updater, "LCD_updater", 2048, time_arr, 5, NULL);
+#endif
     
     // Time semaphore and update queue
     s_timer_semaphore = xSemaphoreCreateBinary();
@@ -233,11 +234,13 @@ void app_main(void)
     // Init lock pins
     if (lock_pin_init() != 0) {
       ESP_LOGW(TAG, "Lock GPIO init failed, invalid args!");
-    // Init buttons
     }
+    // Init buttons
+#ifdef CONFIG_BUTTONS_ENABLED
     if (button_pin_init() != 0) {
       ESP_LOGW(TAG, "Button GPIO init failed, invalid args!");
     }
+#endif
     // Create tasks to run in background
     xTaskCreate(&pulseLock , "pulseLock", 2048, arr, 5, NULL);
     xTaskCreate(&updateAlarm, "updateAlarm", 2048, NULL, 5, NULL);
@@ -360,13 +363,11 @@ void pulseLock(void* param) {
   time_t now = 0, diff = 0, offs=0;
   int lock_idx = 0;
   int idxToPin[NUM_LOCKS] = { LOCK_GPIO_0, LOCK_GPIO_1, LOCK_GPIO_2, LOCK_GPIO_3, LOCK_GPIO_4, LOCK_GPIO_5 };
-  if (!TESTMODE) {
-    offs=24*3600;
-  }
-  else {
-    offs=CONFIG_TESTMODE_INTERVAL*6;
-  }
-    
+#ifdef CONFIG_FEEDER_TESTMODE
+  offs = CONFIG_TESTMODE_INTERVAL*6;
+#else
+  offs = 24*3600;
+#endif
   for (;;) {
     // Wait until ISR gives semaphore, increment lock_idx counter
     xSemaphoreTake(s_timer_semaphore, portMAX_DELAY);
@@ -405,7 +406,7 @@ void pulseLock(void* param) {
   }
 }
 
-void LCD_updater(void* param)
+void LCD_updater(void* param) {
 /*
    This task should run every 60 seconds or so
    to update the time reading on the LCD screen
@@ -413,7 +414,6 @@ void LCD_updater(void* param)
    Based on that, increment/decrement screen idx
    and display alarm times on the LCD screen.
 */
-{
   char** times= (char **) param;
   for (uint8_t i = 0; i < NUM_LOCKS; i++) {
     ESP_LOGI(TAG,"String at idx %d is %s", i, *(times+i));
@@ -431,6 +431,7 @@ void LCD_updater(void* param)
     now=time(NULL);
     xFreq = pdMS_TO_TICKS((60 - (now - (now / 60)*60))*(1000));
     ESP_LOGI(TAG, "Waiting %d milliseconds until next screen refresh", xFreq);
+#ifdef CONFIG_BUTTONS_ENABLED
     if (xQueueReceive(screen_queue, &screen_idx, xFreq) == pdFALSE) {
       if (screen_idx == 0) {
         vTaskDelayUntil(&xLastWakeTime, xFreq);
@@ -510,5 +511,16 @@ void LCD_updater(void* param)
           break;
       } 
     }
+#else
+    vTaskDelayUntil(&xLastWakeTime, xFreq);
+    LCD_clearScreen();
+    LCD_setCursor(0,0);
+    LCD_writeStr("PonyFeeder 3000");
+    LCD_setCursor(0, 1);
+    now=time(NULL);
+    localtime_r(&now, &timeinfo);
+    sprintf(txtbuf, "TIME: %02d:%02d", timeinfo.tm_hour, timeinfo.tm_min);
+    LCD_writeStr(txtbuf);
+#endif
   }
 }
