@@ -1,5 +1,5 @@
 # put here your custom config value
-menu "Example Configuration"
+menu "Wi-Fi Configuration"
 config ESP_WIFI_SSID
     string "WiFi SSID"
     default "myssid"
@@ -11,4 +11,34 @@ config ESP_WIFI_PASSWORD
     default "mypassword"
     help
 	WiFi password (WPA or WPA2) for the example to use.
+endmenu
+menu "Horse feeder settings"
+config FEEDER_TESTMODE 
+    bool "If true, disengage locks in rapid succession"
+    default false
+    help
+    Toggle testmode on or off 
+if FEEDER_TESTMODE
+config TESTMODE_INTERVAL
+    int "Interval"
+    default 15
+    help
+    Interval at which locks are disengaged (in seconds)
+endif
+config LCD_ENABLED
+    bool "Toggle LCD on/off"
+    default true 
+    help
+    Toggle the LCD on or off
+
+if LCD_ENABLED
+config BUTTONS_ENABLED
+    bool "Toggle button functionality on/off"
+    default true
+    help
+    Toggle button functionality on/off
+endif 
+endmenu
+
+menu "Test mode settings"
 endmenu
