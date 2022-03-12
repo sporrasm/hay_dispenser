@@ -87,11 +87,11 @@ time_t get_time()
     struct hostent *server;      // Server data structure.
     sockfd = socket( AF_INET, SOCK_DGRAM, IPPROTO_UDP ); // Create a UDP socket.
     if ( sockfd < 0 ) {
-        printf( "ERROR opening socket\n" );
+        ESP_LOGW(TAG_NTP, "ERROR opening socket\n" );
         return -1;
     }
     server = gethostbyname( host_name ); // Convert URL to IP.
-    printf("Connecting to %s\n", host_name);
+    ESP_LOGI(TAG_NTP,"Connecting to %s\n", host_name);
     if ( server != NULL ) {
         // Zero out the server address structure.
         bzero( ( char* ) &serv_addr, sizeof( serv_addr ) );
@@ -103,24 +103,24 @@ time_t get_time()
         serv_addr.sin_port = htons( portno );
         // Call up the server using its IP address and port number.
         if ( connect( sockfd, ( struct sockaddr * ) &serv_addr, sizeof( serv_addr) ) < 0 ) {
-            printf( "ERROR connecting to socket\n" );
+            ESP_LOGW(TAG_NTP, "ERROR connecting to socket");
             return -1;
         }
         // Send it the NTP packet it wants. If n == -1, it failed.
         n = write( sockfd, ( char* ) &packet, sizeof( ntp_packet ) );
         if ( n < 0 ) {
-            printf( "ERROR writing to socket\n" );
+            ESP_LOGW(TAG_NTP, "ERROR writing to socket");
             return -1;
         }
         // Wait and receive the packet back from the server. If n == -1, it failed.
         n = read( sockfd, ( char* ) &packet, sizeof( ntp_packet ) );
         if ( n < 0 ) {
-            printf( "ERROR reading from socket" );
+            ESP_LOGW(TAG_NTP, "ERROR reading from socket" );
             return -1;
         }
     }
     else {
-        printf( "ERROR, no such host\n" );
+        ESP_LOGW(TAG_NTP, "ERROR, no such host %s", host_name);
         return -1;
     }
 
@@ -139,7 +139,7 @@ time_t get_time()
 
     // Print the time we got from the server, accounting for local timezone and conversion from UTC time.
 
-    //printf( "Time: %s", ctime( ( const time_t* ) &txTm ) );
+    //ESP_LOGI(TAG_NTP, "Time: %s", ctime( ( const time_t* ) &txTm ) );
 
     return txTm;
 }

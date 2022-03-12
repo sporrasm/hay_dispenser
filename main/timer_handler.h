@@ -23,7 +23,6 @@ void IRAM_ATTR timer_group1_isr(void* arg);
 #define TIMER_DIVIDER 80
 #define TIMER_SCALE (TIMER_BASE_CLK / TIMER_DIVIDER)
 
-
 static const char* TAG_TIMER_INIT="TIMER_INIT";
 
 typedef struct {

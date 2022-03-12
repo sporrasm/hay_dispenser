@@ -4,6 +4,7 @@
 #include <time.h>
 #include <sys/time.h>
 #include <inttypes.h>
+#define LOG_LOCAL_LEVEL ESP_LOG_DEBUG
 #include "esp_log.h"
 #include "wifi_connect.h"
 #include "freertos/FreeRTOS.h"
@@ -141,6 +142,8 @@ void app_main(void)
     esp_restart();
   }   
   else {
+    esp_log_level_set(TAG_LOCK, ESP_LOG_DEBUG);
+    esp_log_level_set(TAG, ESP_LOG_DEBUG);
     ESP_LOGI(TAG, "Connected to WiFi");
     ESP_LOGI(TAG, "Getting current time");
     time_t currtime = get_time();
@@ -189,7 +192,7 @@ void app_main(void)
       for (uint8_t i = 0; i < NUM_LOCKS; i++) {
         time_arr[i] = pvPortMalloc((STRLEN+1)*sizeof(char));
         if (strcpy(time_arr[i], times[i]) != NULL) {
-          ESP_LOGI(TAG,"Succesfully dynamically allocated. Array element at idx %d is %s", i, time_arr[i]);
+          ESP_LOGD(TAG,"Succesfully dynamically allocated. Array element at idx %d is %s", i, time_arr[i]);
         }
       }
 #ifdef CONFIG_BUTTONS_ENABLED
@@ -252,7 +255,7 @@ void updateAlarm(void* param) {
   for (;;) {
     xQueueReceive(update_queue, &val, portMAX_DELAY);
     if (val > 0) {
-      ESP_LOGI(TAG_ALARM, "Setting timer to %ld seconds", val);
+      ESP_LOGD(TAG_ALARM, "Setting timer to %ld seconds", val);
       ESP_ERROR_CHECK(timer_set_counter_value(0,0,0));
       ESP_ERROR_CHECK(timer_set_alarm_value(0,0, ((uint64_t) val)*((uint64_t)TIMER_SCALE)));
       ESP_ERROR_CHECK(timer_set_alarm(0,0,1));
@@ -287,7 +290,7 @@ void updateScreenIdxLeft(void* param) {
     if (*screen_idx<0) {
         *screen_idx=6;
       }
-      ESP_LOGI(TAG, "Screen idx is now: %d", *screen_idx);
+      ESP_LOGD(TAG, "Screen idx is now: %d", *screen_idx);
       idx=*screen_idx;
       if (xQueueSend(screen_queue, (void *) &idx, pdMS_TO_TICKS(100) ) != pdPASS) {
         ESP_LOGW(TAG, "Failed to update screen_idx");
@@ -327,7 +330,7 @@ void updateScreenIdxRight(void* param) {
       if (*screen_idx>6) {
         (*screen_idx)=0;
       }
-      ESP_LOGI(TAG, "Screen idx is now: %d", *screen_idx);
+      ESP_LOGD(TAG, "Screen idx is now: %d", *screen_idx);
       idx=*screen_idx;
       if (xQueueSend(screen_queue, (void *) &idx, pdMS_TO_TICKS(100) ) != pdPASS) {
         ESP_LOGW(TAG, "Failed to update screen_idx");
@@ -371,18 +374,21 @@ void pulseLock(void* param) {
   for (;;) {
     // Wait until ISR gives semaphore, increment lock_idx counter
     xSemaphoreTake(s_timer_semaphore, portMAX_DELAY);
-    ESP_LOGI(TAG_LOCK, "INTERRUPT FROM TIMER");
-    ESP_LOGI(TAG_LOCK, "RELEASING LOCK ON GPIO IDX: %d", *(idxToPin+lock_idx));
+    ESP_LOGD(TAG_LOCK, "INTERRUPT FROM TIMER");
+    ESP_LOGD(TAG_LOCK, "RELEASING LOCK ON GPIO IDX: %d", *(idxToPin+lock_idx));
     gpio_set_level(*(idxToPin+lock_idx), 1); // MOSFET drivers are active high 
     vTaskDelay(pdMS_TO_TICKS(LOCK_MS));
     gpio_set_level(*(idxToPin+lock_idx), 0);
     // Increment lock idx, loop back to zero if over range
+    ESP_LOGD(TAG_LOCK, "LOCK IDX WAS: %d, Incrementing.", lock_idx);
     if (lock_idx >= 5) {
       lock_idx=0; 
+      ESP_LOGD(TAG_LOCK, "LOCK IDX OVERRANGE, Looping back to zero");
     }
     else {
       lock_idx++;
     }
+    ESP_LOGD(TAG_LOCK, "LOCK IDX IS: %d", lock_idx);
     now = time(NULL);
     diff = *(t_arr+lock_idx) - now;
     if (diff > 0) {
@@ -391,8 +397,8 @@ void pulseLock(void* param) {
       }
     } 
     else {
-      ESP_LOGI(TAG_LOCK, "Time diff was negative! (%ld seconds)", diff);
-      ESP_LOGI(TAG_LOCK, "Increasing time_arr values %ld seconds.", offs);
+      ESP_LOGD(TAG_LOCK, "Time diff was negative! (%ld seconds)", diff);
+      ESP_LOGD(TAG_LOCK, "Increasing time_arr values %ld seconds.", offs);
       for (uint8_t i = 0; i < NUM_LOCKS; i++) {
         *(t_arr+i) += offs;
       }
@@ -416,7 +422,7 @@ void LCD_updater(void* param) {
 */
   char** times= (char **) param;
   for (uint8_t i = 0; i < NUM_LOCKS; i++) {
-    ESP_LOGI(TAG,"String at idx %d is %s", i, *(times+i));
+    ESP_LOGD(TAG,"String at idx %d is %s", i, *(times+i));
   }
   char txtbuf[16];
   int screen_idx=0;
@@ -430,7 +436,7 @@ void LCD_updater(void* param) {
     // Wait until it's time to update or we receive index from queue
     now=time(NULL);
     xFreq = pdMS_TO_TICKS((60 - (now - (now / 60)*60))*(1000));
-    ESP_LOGI(TAG, "Waiting %d milliseconds until next screen refresh", xFreq);
+    ESP_LOGV(TAG, "Waiting %d milliseconds until next screen refresh", xFreq);
 #ifdef CONFIG_BUTTONS_ENABLED
     if (xQueueReceive(screen_queue, &screen_idx, xFreq) == pdFALSE) {
       if (screen_idx == 0) {

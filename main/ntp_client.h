@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <time.h>
+#include "esp_log.h"
 #define NTP_TIMESTAMP_DELTA 2208988800ull
 
 #define LI(packet)   (uint8_t) ((packet.li_vn_mode & 0xC0) >> 6) // (li   & 11 000 000) >> 6
@@ -42,5 +43,7 @@ typedef struct
 } ntp_packet;              // Total: 384 bits or 48 bytes.
 
 time_t get_time();
+
+static const char* TAG_NTP="NTP_CLIENT";
 
 #endif
