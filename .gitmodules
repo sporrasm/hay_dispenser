@@ -1,0 +1,3 @@
+[submodule "components/esp-wifi-logger"]
+	path = components/esp-wifi-logger
+	url = git@github.com:VedantParanjape/esp-wifi-logger.git
