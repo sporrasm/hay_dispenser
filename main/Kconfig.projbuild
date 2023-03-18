@@ -40,5 +40,3 @@ config BUTTONS_ENABLED
 endif 
 endmenu
 
-menu "Test mode settings"
-endmenu

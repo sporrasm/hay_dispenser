@@ -1,5 +1,6 @@
 #include "timer_handler.h"
 #include <inttypes.h>
+#define LOG_LOCAL_LEVEL ESP_LOG_DEBUG
 
 
 time_t* timeFromString(char** times, unsigned int len) {
@@ -43,8 +44,7 @@ time_t* timeFromString(char** times, unsigned int len) {
         int ret = sprintf(datebuf, "%04d %02d %02d %s", currtime.tm_year+1900,
                 currtime.tm_mon+1, currtime.tm_mday,
                 times[i]);
-        ESP_LOGI(TAG_TFS, "%s", datebuf);
-        ESP_LOGI(TAG_TFS, "%s", times[i]);
+        ESP_LOGI(TAG_TFS, "Constructed timestamp: %s from time: %s", datebuf, times[i]);
         if (ret != strlen(datebuf)) {
           ESP_LOGW(TAG_TFS,"sprintf failed");
         }
@@ -81,7 +81,15 @@ int comp_time(const void* elem1, const void* elem2) {
 }
 
 void sort_time(time_t* arr, int len) {
+  char timestr[9];
+  struct tm* time_info;
   qsort(arr, len, sizeof(*arr), comp_time);
+  for (int i=0; i<len; i++) {
+    ESP_LOGD("TAG_TIMER_INIT", "Sorted array[%d]: %ld", i, arr[i]);
+    time_info=localtime(&arr[i]);
+    strftime(timestr, sizeof(timestr), "%H:%M:%S", time_info);
+    ESP_LOGD("TAG_TIMER_INIT", "Corresponding time stamp: %s", timestr);
+  }
 }
 
 void IRAM_ATTR timer_group0_isr(void *arg)

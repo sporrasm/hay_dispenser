@@ -154,18 +154,6 @@ void app_main(void)
     settimeofday(&tv, NULL);
 
     time_t* arr = NULL;
-    //if (!TESTMODE) {
-    //  wifi_log_i(TAG, "%s", "Initializing in feeding mode!");
-    //  arr = timeFromString(times, sizeof(times) / sizeof(times[0]));
-    //}
-    //else {
-    //    wifi_log_i(TAG, "%s", "Initializing in testmode!");
-    //    arr = malloc(sizeof(time_t) * (NUM_LOCKS+1));
-    //    memset(arr, 0, (NUM_LOCKS+1)*sizeof(time_t));
-    //    for (int i = 0; i < NUM_LOCKS; i++) {
-    //      arr[i] = currtime + (i+1)*CONFIG_TESTMODE_INTERVAL;
-    //    }
-    //}
 #ifdef CONFIG_FEEDER_TESTMODE
     arr = malloc(sizeof(time_t) * (NUM_LOCKS+1));
     memset(arr, 0, (NUM_LOCKS+1)*sizeof(time_t));
@@ -174,8 +162,27 @@ void app_main(void)
     }
 #else
     arr=timeFromString(times,sizeof(times)/sizeof(times[0]));
+    time_t* arr_cp = NULL;
+    arr_cp = malloc(sizeof(time_t) * (NUM_LOCKS+1));
+    memset(arr_cp, 0, (NUM_LOCKS+1)*sizeof(time_t));
+    arr_cp = timeFromString(times,sizeof(times)/sizeof(times[0]));
 #endif
     sort_time(arr, sizeof(times) / sizeof(times[0])); 
+#ifndef CONFIG_FEEDER_TESTMODE
+    // Try obtain the current lock index corresponding to the index of the original time array
+    int lock_idx=0;
+    for (int i=0;i<NUM_LOCKS+1;i++) {
+      ESP_LOGD(TAG, "Index %d", i);
+      ESP_LOGD(TAG, "arr   : %ld", *(arr+i));
+      ESP_LOGD(TAG, "arr_cp: %ld", *(arr_cp+i));
+      if (*(arr) == *(arr_cp+i)) {
+        lock_idx=i;
+        break;
+      }
+    }
+    ESP_LOGD(TAG, "The lock to be pulsed is: %d", lock_idx);
+    free(arr_cp);
+#endif
     //  start task to update time on LCD
 #ifdef CONFIG_LCD_ENABLED
       LCD_home();
