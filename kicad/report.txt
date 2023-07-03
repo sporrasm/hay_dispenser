@@ -1,85 +1,237 @@
-Info: Processing component "R6:/61EBCA90/61F9A2C2:Resistor_SMD:R_0805_2012Metric_Pad1.15x1.40mm_HandSolder".
-Info: Processing component "R16:/61EBCA90/61F9A1EA:Resistor_SMD:R_0805_2012Metric_Pad1.15x1.40mm_HandSolder".
-Info: Processing component "R15:/61EBCA90/61F9A1DB:Resistor_SMD:R_0805_2012Metric_Pad1.15x1.40mm_HandSolder".
-Info: Processing component "R14:/61EBCA90/61F9A165:Resistor_SMD:R_0805_2012Metric_Pad1.15x1.40mm_HandSolder".
-Info: Processing component "R13:/61EBCA90/61F9A156:Resistor_SMD:R_0805_2012Metric_Pad1.15x1.40mm_HandSolder".
-Info: Processing component "R12:/61EBCA90/61F9A26F:Resistor_SMD:R_0805_2012Metric_Pad1.15x1.40mm_HandSolder".
-Info: Processing component "R11:/61EBCA90/61F9A1F0:Resistor_SMD:R_0805_2012Metric_Pad1.15x1.40mm_HandSolder".
-Info: Processing component "R10:/61EBCA90/61F9A16B:Resistor_SMD:R_0805_2012Metric_Pad1.15x1.40mm_HandSolder".
-Info: Processing component "R9:/61EBCA90/61F9A127:Resistor_SMD:R_0805_2012Metric_Pad1.15x1.40mm_HandSolder".
-Info: Processing component "R8:/61EBCA90/61F9A118:Resistor_SMD:R_0805_2012Metric_Pad1.15x1.40mm_HandSolder".
-Info: Processing component "R7:/61EBCA90/61F9A2B3:Resistor_SMD:R_0805_2012Metric_Pad1.15x1.40mm_HandSolder".
-Info: Processing component "R17:/61EBCA90/61F9A284:Resistor_SMD:R_0805_2012Metric_Pad1.15x1.40mm_HandSolder".
-Info: Processing component "R5:/61EBCA90/61F9A1AB:Resistor_SMD:R_0805_2012Metric_Pad1.15x1.40mm_HandSolder".
-Info: Processing component "R4:/61EBCA90/61F9A194:Resistor_SMD:R_0805_2012Metric_Pad1.15x1.40mm_HandSolder".
-Info: Processing component "R3:/61EBCA90/61F9A12D:Resistor_SMD:R_0805_2012Metric_Pad1.15x1.40mm_HandSolder".
-Info: Processing component "R2:/61EBCA90/61F9A2AD:Resistor_SMD:R_0805_2012Metric_Pad1.15x1.40mm_HandSolder".
-Info: Processing component "R1:/61EBCA90/61F9A1B1:Resistor_SMD:R_0805_2012Metric_Pad1.15x1.40mm_HandSolder".
-Info: Processing component "Q6:/61EBCA90/61F9A243:Package_TO_SOT_SMD:SOT-23".
-Info: Processing component "Q5:/61EBCA90/61F9A237:Package_TO_SOT_SMD:SOT-23".
-Info: Processing component "Q4:/61EBCA90/61F9A209:Package_TO_SOT_SMD:SOT-23".
-Info: Processing component "Q3:/61EBCA90/61F9A22A:Package_TO_SOT_SMD:SOT-23".
-Info: Processing component "Q2:/61EBCA90/61F9A23D:Package_TO_SOT_SMD:SOT-23".
-Info: Processing component "R27:/61EBCA90/61FB83F1:Resistor_SMD:R_0805_2012Metric_Pad1.15x1.40mm_HandSolder".
-Info: Processing component "U6:/61EBCA90/61FC23A3:Package_SO:SOIC-8-1EP_3.9x4.9mm_P1.27mm_EP2.29x3mm".
-Info: Processing component "U5:/61EBCA90/61FC239D:Package_SO:SOIC-8-1EP_3.9x4.9mm_P1.27mm_EP2.29x3mm".
-Info: Processing component "U4:/61EBCA90/61FC2397:Package_SO:SOIC-8-1EP_3.9x4.9mm_P1.27mm_EP2.29x3mm".
-Info: Processing component "U3:/61EBBE65/61FD35B3:devkits:ESP32_DevkitC_ExtraPins".
-Info: Processing component "U2:/61EB8D01/61E81799:Package_TO_SOT_THT:TO-220-3_Vertical".
-Info: Processing component "U1:/61EB8D01/61E80D2A:Package_TO_SOT_THT:TO-220-3_Vertical".
-Info: Processing component "SW4:/61EBCA90/61FB83D7:Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical".
-Info: Processing component "SW3:/61EBCA90/6210369C:Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical".
-Info: Processing component "SW2:/61EBCA90/6210D703:Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical".
-Info: Processing component "SW1:/61EBBE65/61FA5A53:Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical".
-Info: Processing component "Q1:/61EBCA90/61F9A230:Package_TO_SOT_SMD:SOT-23".
-Info: Processing component "R26:/61EBCA90/61F6FBA7:Resistor_SMD:R_0805_2012Metric_Pad1.15x1.40mm_HandSolder".
-Info: Processing component "R25:/61EBCA90/61F6F55A:Resistor_SMD:R_0805_2012Metric_Pad1.15x1.40mm_HandSolder".
-Info: Processing component "R24:/61EBCA90/62103686:Resistor_SMD:R_0805_2012Metric_Pad1.15x1.40mm_HandSolder".
-Info: Processing component "R23:/61EBCA90/6210D6ED:Resistor_SMD:R_0805_2012Metric_Pad1.15x1.40mm_HandSolder".
-Info: Processing component "R22:/61EBCA90/61F953A9:Resistor_SMD:R_0805_2012Metric_Pad1.15x1.40mm_HandSolder".
-Info: Processing component "R21:/61EBCA90/61F9539F:Resistor_SMD:R_0805_2012Metric_Pad1.15x1.40mm_HandSolder".
-Info: Processing component "R20:/61EBCA90/61F84748:Resistor_SMD:R_0805_2012Metric_Pad1.15x1.40mm_HandSolder".
-Info: Processing component "R19:/61EBCA90/61F8473E:Resistor_SMD:R_0805_2012Metric_Pad1.15x1.40mm_HandSolder".
-Info: Processing component "R18:/61EBCA90/61F9A275:Resistor_SMD:R_0805_2012Metric_Pad1.15x1.40mm_HandSolder".
-Info: Processing component "C11:/61EB8D01/61E8376D:Capacitor_THT:CP_Radial_D5.0mm_P2.50mm".
-Info: Processing component "D2:/61EBCA90/61F9A24B:Diode_SMD:D_SMB".
-Info: Processing component "D1:/61EBCA90/61F9A1A4:Diode_SMD:D_SMB".
-Info: Processing component "C19:/61EBCA90/61FC2349:Capacitor_SMD:C_0805_2012Metric_Pad1.15x1.40mm_HandSolder".
-Info: Processing component "C18:/61EBCA90/61FC2343:Capacitor_SMD:C_0805_2012Metric_Pad1.15x1.40mm_HandSolder".
-Info: Processing component "C17:/61EBCA90/61FC2369:Capacitor_SMD:C_0805_2012Metric_Pad1.15x1.40mm_HandSolder".
-Info: Processing component "C16:/61EBCA90/61FC2326:Capacitor_SMD:C_0805_2012Metric_Pad1.15x1.40mm_HandSolder".
-Info: Processing component "C15:/61EBCA90/61FC2363:Capacitor_SMD:C_0805_2012Metric_Pad1.15x1.40mm_HandSolder".
-Info: Processing component "C14:/61EBCA90/61FC2320:Capacitor_SMD:C_0805_2012Metric_Pad1.15x1.40mm_HandSolder".
-Info: Processing component "C13:/61EB8D01/61E83D78:Capacitor_SMD:C_0805_2012Metric_Pad1.15x1.40mm_HandSolder".
-Info: Processing component "C12:/61EB8D01/61E83A54:Capacitor_SMD:C_0805_2012Metric_Pad1.15x1.40mm_HandSolder".
-Info: Processing component "D3:/61EBCA90/61F9A212:Diode_SMD:D_SMB".
-Info: Processing component "C10:/61EB8D01/61E83434:Capacitor_THT:CP_Radial_D5.0mm_P2.50mm".
-Info: Processing component "C9:/61EB8D01/61E830DC:Capacitor_THT:CP_Radial_D5.0mm_P2.50mm".
-Info: Processing component "C8:/61EB8D01/61E84086:Capacitor_SMD:C_0805_2012Metric_Pad1.15x1.40mm_HandSolder".
-Info: Processing component "C7:/61EB8D01/61E97281:Capacitor_SMD:C_0805_2012Metric_Pad1.15x1.40mm_HandSolder".
-Info: Processing component "C6:/61EB8D01/61E96D73:Capacitor_THT:CP_Radial_D5.0mm_P2.50mm".
-Info: Processing component "C5:/61EB8D01/61E96991:Capacitor_THT:CP_Radial_D5.0mm_P2.50mm".
-Info: Processing component "C4:/61EB8D01/61E844EB:Capacitor_THT:CP_Radial_D5.0mm_P2.50mm".
-Info: Processing component "C3:/61EB8D01/61E84951:Capacitor_SMD:C_0805_2012Metric_Pad1.15x1.40mm_HandSolder".
-Info: Processing component "C2:/61EB8D01/61E84C7C:Capacitor_SMD:C_0805_2012Metric_Pad1.15x1.40mm_HandSolder".
-Info: Processing component "D4:/61EBCA90/61F9A21A:Diode_SMD:D_SMB".
-Info: Change symbol path "J9:" to "/61EB8D01/62262890".
-Info: Processing component "J9:/61EB8D01/62262890:connectors:BarrelJack_CUI_PJ-102AH_Horizontal".
-Info: Processing component "J8:/61EB8D01/61DC9BFA:".
-Info: Processing component "J7:/61EBCA90/61F9A293:Connector_PinHeader_2.54mm:PinHeader_2x02_P2.54mm_Vertical".
-Info: Processing component "J6:/61EBCA90/61F9A1CC:Connector_PinHeader_2.54mm:PinHeader_2x02_P2.54mm_Vertical".
-Info: Processing component "J5:/61EBCA90/61F9A147:Connector_PinHeader_2.54mm:PinHeader_2x02_P2.54mm_Vertical".
-Info: Processing component "J4:/61EBCA90/61F9A109:Connector_PinHeader_2.54mm:PinHeader_2x02_P2.54mm_Vertical".
-Info: Processing component "J3:/61EBCA90/61F9A2D1:Connector_PinHeader_2.54mm:PinHeader_2x02_P2.54mm_Vertical".
-Info: Processing component "J2:/61EBCA90/61F9A185:Connector_PinHeader_2.54mm:PinHeader_2x02_P2.54mm_Vertical".
-Info: Processing component "J1:/61EBBE65/62009678:Connector_PinHeader_2.00mm:PinHeader_1x04_P2.00mm_Vertical".
-Info: Processing component "D6:/61EBCA90/61F9A253:Diode_SMD:D_SMB".
-Info: Processing component "D5:/61EBCA90/61F9A222:Diode_SMD:D_SMB".
-Info: Processing component "C1:/61EB8D01/61EA2DC4:Capacitor_THT:CP_Radial_D5.0mm_P2.50mm".
-Add J9 (footprint "connectors:BarrelJack_CUI_PJ-102AH_Horizontal").
-Change REF** reference to J9.
-Change J9 value from BarrelJack_CUI_PJ-102AH_Horizontal to Barrel_Jack_Switch_Pin3Ring.
-Connect J9 pin 1 to +12V.
-Connect J9 pin 2 to GND.
-Connect J9 pin 3 to GND.
-Error: Cannot add J8 (no footprint assigned).
+Info: Processing symbol 'R17:Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder'.
+Info: Processing symbol 'R9:Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder'.
+Info: Processing symbol 'R10:Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder'.
+Info: Processing symbol 'R11:Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder'.
+Info: Processing symbol 'R12:Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder'.
+Info: Processing symbol 'C1:Capacitor_SMD:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder'.
+Info: Processing symbol 'R14:Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder'.
+Info: Processing symbol 'R15:Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder'.
+Info: Processing symbol 'R16:Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder'.
+Info: Processing symbol 'R8:Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder'.
+Info: Processing symbol 'R18:Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder'.
+Info: Processing symbol 'R19:Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder'.
+Info: Processing symbol 'R20:Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder'.
+Info: Processing symbol 'R21:Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder'.
+Info: Processing symbol 'R22:Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder'.
+Info: Processing symbol 'R23:Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder'.
+Info: Processing symbol 'R24:Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder'.
+Info: Processing symbol 'R25:Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder'.
+Info: Processing symbol 'R7:Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder'.
+Info: Processing symbol 'R6:Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder'.
+Info: Processing symbol 'R5:Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder'.
+Info: Processing symbol 'R4:Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder'.
+Info: Processing symbol 'R3:Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder'.
+Info: Processing symbol 'R2:Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder'.
+Info: Processing symbol 'R1:Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder'.
+Info: Processing symbol 'Q8:Package_TO_SOT_SMD:SOT-23'.
+Info: Processing symbol 'Q7:Package_TO_SOT_SMD:SOT-23'.
+Info: Processing symbol 'Q6:Package_TO_SOT_SMD:SOT-23'.
+Info: Processing symbol 'Q5:Package_TO_SOT_SMD:SOT-23'.
+Info: Processing symbol 'Q4:Package_TO_SOT_SMD:SOT-23'.
+Info: Processing symbol 'Q3:Package_TO_SOT_SMD:SOT-23'.
+Info: Processing symbol 'Q2:Package_TO_SOT_SMD:SOT-23'.
+Info: Processing symbol 'Q1:Package_TO_SOT_SMD:SOT-23'.
+Info: Processing symbol 'R41:Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder'.
+Info: Processing symbol 'U9:devkits:AMSROL-783'.
+Info: Processing symbol 'U8:devkits:ESP32_DevkitC_ExtraPins'.
+Info: Processing symbol 'U6:Package_SO:TSSOP-16_4.4x5mm_P0.65mm'.
+Info: Processing symbol 'U5:Package_SO:TSSOP-16_4.4x5mm_P0.65mm'.
+Info: Processing symbol 'U4:Package_SO:SOIC-8-1EP_3.9x4.9mm_P1.27mm_EP2.29x3mm'.
+Info: Processing symbol 'U3:Package_SO:SOIC-8-1EP_3.9x4.9mm_P1.27mm_EP2.29x3mm'.
+Info: Processing symbol 'U2:Package_SO:SOIC-8-1EP_3.9x4.9mm_P1.27mm_EP2.29x3mm'.
+Info: Processing symbol 'U1:Package_SO:SOIC-8-1EP_3.9x4.9mm_P1.27mm_EP2.29x3mm'.
+Info: Processing symbol 'SW5:Connector_TE-Connectivity:TE_826576-3_1x03_P3.96mm_Vertical'.
+Info: Processing symbol 'SW4:Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical'.
+Info: Processing symbol 'SW3:Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical'.
+Info: Processing symbol 'SW2:Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical'.
+Info: Processing symbol 'SW1:Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical'.
+Info: Processing symbol 'Ropt1:Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder'.
+Info: Processing symbol 'R42:Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder'.
+Info: Processing symbol 'R13:Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder'.
+Info: Processing symbol 'R40:Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder'.
+Info: Processing symbol 'R39:Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder'.
+Info: Processing symbol 'R38:Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder'.
+Info: Processing symbol 'R37:Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder'.
+Info: Processing symbol 'R36:Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder'.
+Info: Processing symbol 'R35:Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder'.
+Info: Processing symbol 'R34:Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder'.
+Info: Processing symbol 'R33:Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder'.
+Info: Processing symbol 'R32:Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder'.
+Info: Processing symbol 'R31:Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder'.
+Info: Processing symbol 'R30:Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder'.
+Info: Processing symbol 'R29:Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder'.
+Info: Processing symbol 'R28:Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder'.
+Info: Processing symbol 'R27:Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder'.
+Info: Processing symbol 'R26:Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder'.
+Info: Processing symbol 'D1:Diode_SMD:D_SMB'.
+Info: Processing symbol 'J7:Connector_PinHeader_2.54mm:PinHeader_2x02_P2.54mm_Vertical'.
+Info: Processing symbol 'J6:Connector_PinHeader_2.54mm:PinHeader_2x02_P2.54mm_Vertical'.
+Info: Processing symbol 'J5:Connector_PinHeader_2.54mm:PinHeader_2x02_P2.54mm_Vertical'.
+Info: Processing symbol 'J4:Connector_PinHeader_2.54mm:PinHeader_2x02_P2.54mm_Vertical'.
+Info: Processing symbol 'J3:Connector_PinHeader_2.54mm:PinHeader_2x02_P2.54mm_Vertical'.
+Info: Processing symbol 'J2:Connector_PinHeader_2.54mm:PinHeader_2x02_P2.54mm_Vertical'.
+Info: Processing symbol 'J1:Connector_PinHeader_2.54mm:PinHeader_2x02_P2.54mm_Vertical'.
+Info: Processing symbol 'D8:Diode_SMD:D_SMB'.
+Info: Processing symbol 'D7:Diode_SMD:D_SMB'.
+Info: Processing symbol 'D6:Diode_SMD:D_SMB'.
+Info: Processing symbol 'D5:Diode_SMD:D_SMB'.
+Info: Processing symbol 'D4:Diode_SMD:D_SMB'.
+Info: Processing symbol 'D3:Diode_SMD:D_SMB'.
+Info: Processing symbol 'D2:Diode_SMD:D_SMB'.
+Info: Processing symbol 'L2:Inductor_THT:L_Radial_D7.0mm_P3.00mm'.
+Info: Processing symbol 'C14:Capacitor_THT:CP_Radial_D5.0mm_P2.50mm'.
+Info: Processing symbol 'C13:Capacitor_THT:CP_Radial_D5.0mm_P2.50mm'.
+Info: Processing symbol 'C12:Capacitor_THT:CP_Radial_D8.0mm_P3.50mm'.
+Info: Processing symbol 'C11:Capacitor_THT:CP_Radial_D5.0mm_P2.50mm'.
+Info: Processing symbol 'C10:Capacitor_THT:CP_Radial_D5.0mm_P2.50mm'.
+Info: Processing symbol 'C9:Capacitor_THT:CP_Radial_D8.0mm_P3.50mm'.
+Info: Processing symbol 'C8:Capacitor_SMD:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder'.
+Info: Processing symbol 'C7:Capacitor_SMD:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder'.
+Info: Processing symbol 'C6:Capacitor_SMD:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder'.
+Info: Processing symbol 'C5:Capacitor_SMD:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder'.
+Info: Processing symbol 'C4:Capacitor_SMD:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder'.
+Info: Processing symbol 'C3:Capacitor_SMD:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder'.
+Info: Processing symbol 'C2:Capacitor_SMD:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder'.
+Info: Processing symbol 'L3:Inductor_THT:L_Radial_D7.0mm_P3.00mm'.
+Info: Processing symbol 'L1:Inductor_THT:L_Radial_D7.0mm_P3.00mm'.
+Info: Processing symbol 'J9:Connector_Phoenix_MSTB:PhoenixContact_MSTBA_2,5_2-G_1x02_P5.00mm_Horizontal'.
+Info: Processing symbol 'J10:Connector_PinHeader_2.00mm:PinHeader_1x04_P2.00mm_Vertical'.
+Info: Processing symbol 'J8:Connector_PinHeader_2.54mm:PinHeader_2x02_P2.54mm_Vertical'.
+Updated D5 symbol association from /00000000-0000-0000-0000-000061ebca90/00000000-0000-0000-0000-000061f9a212 to /00000000-0000-0000-0000-000061ebca90/12310255-a125-40a2-8815-03da1e133a0b.
+Reconnected Q5 pin 1 from Net-(Q1-G) to Net-(Q5-G).
+Reconnected J8 pin 4 from /IOs/LOCK_DET1 to /IOs/LOCK_DET7.
+Reconnected D4 pin 2 from Net-(D2-A) to Net-(D4-A).
+Updated D4 symbol association from /00000000-0000-0000-0000-000061ebca90/1fadecef-52da-4aaa-b496-044390b111f7 to /00000000-0000-0000-0000-000061ebca90/f83071ec-e386-489c-af28-ea3d26ad8b88.
+Reconnected Q6 pin 3 from Net-(D2-A) to Net-(D6-A).
+Reconnected D3 pin 2 from Net-(D1-A) to Net-(D3-A).
+Updated D3 symbol association from /00000000-0000-0000-0000-000061ebca90/00000000-0000-0000-0000-000061f9a212 to /00000000-0000-0000-0000-000061ebca90/ba43a25b-48b8-4457-9719-1656a0430705.
+Reconnected Q6 pin 1 from Net-(Q2-G) to Net-(Q6-G).
+Updated Q6 symbol association from /00000000-0000-0000-0000-000061ebca90/9a64ff62-3964-40c4-85d5-2005a53f7bb7 to /00000000-0000-0000-0000-000061ebca90/19cce44a-ca22-4e9a-8f8b-97bd614c21f1.
+Reconnected J8 pin 3 from Net-(D2-A) to Net-(D8-A).
+Reconnected Q5 pin 3 from Net-(D1-A) to Net-(D5-A).
+Updated R29 symbol association from /00000000-0000-0000-0000-000061ebca90/00000000-0000-0000-0000-000061f8473e to /00000000-0000-0000-0000-000061ebca90/3bc0eca3-92dc-4e1d-8b31-45b180863d8f.
+Reconnected D5 pin 2 from Net-(D1-A) to Net-(D5-A).
+Reconnected R32 pin 1 from /IOs/LOCK_EN0 to /IOs/LOCK_EN6.
+Reconnected R32 pin 2 from Net-(U1-ENB) to Net-(U4-ENB).
+Updated R32 symbol association from /00000000-0000-0000-0000-000061ebca90/00000000-0000-0000-0000-000061f84748 to /00000000-0000-0000-0000-000061ebca90/12d70f20-32db-4ce9-8402-37e04de7cd11.
+Updated Q7 symbol association from /00000000-0000-0000-0000-000061ebca90/00000000-0000-0000-0000-000061f9a22a to /00000000-0000-0000-0000-000061ebca90/117ebf1d-a23b-43cb-92d2-cf0df6883d6a.
+Reconnected R31 pin 1 from Net-(U1-ENA) to Net-(U4-ENA).
+Reconnected R31 pin 2 from /IOs/LOCK_EN1 to /IOs/LOCK_EN7.
+Updated R31 symbol association from /00000000-0000-0000-0000-000061ebca90/00000000-0000-0000-0000-000061f8473e to /00000000-0000-0000-0000-000061ebca90/c096ada7-25bf-42d8-b60a-c3b1d2fc6672.
+Updated D6 symbol association from /00000000-0000-0000-0000-000061ebca90/1fadecef-52da-4aaa-b496-044390b111f7 to /00000000-0000-0000-0000-000061ebca90/009bf2af-9f41-490d-a20b-dce77ff50deb.
+Reconnected R30 pin 2 from Net-(U1-ENB) to Net-(U3-ENB).
+Reconnected R30 pin 1 from /IOs/LOCK_EN0 to /IOs/LOCK_EN4.
+Updated R30 symbol association from /00000000-0000-0000-0000-000061ebca90/00000000-0000-0000-0000-000061f84748 to /00000000-0000-0000-0000-000061ebca90/f51487ca-ee80-4a78-abcf-102a507cea02.
+Reconnected D6 pin 2 from Net-(D2-A) to Net-(D6-A).
+Reconnected R29 pin 2 from /IOs/LOCK_EN1 to /IOs/LOCK_EN5.
+Reconnected R29 pin 1 from Net-(U1-ENA) to Net-(U3-ENA).
+Reconnected J7 pin 4 from /IOs/LOCK_DET0 to /IOs/LOCK_DET6.
+Reconnected U3 pin 4 from /IOs/LOCK_IN1 to /IOs/LOCK_IN5.
+Updated Q3 symbol association from /00000000-0000-0000-0000-000061ebca90/00000000-0000-0000-0000-000061f9a22a to /00000000-0000-0000-0000-000061ebca90/dab6c745-e6cc-45fe-9a9b-13cf7740417a.
+Reconnected Q3 pin 1 from Net-(Q1-G) to Net-(Q3-G).
+Reconnected U4 pin 1 from Net-(U1-ENA) to Net-(U4-ENA).
+Reconnected U4 pin 2 from /IOs/LOCK_IN0 to /IOs/LOCK_IN6.
+Reconnected U4 pin 4 from /IOs/LOCK_IN1 to /IOs/LOCK_IN7.
+Reconnected U4 pin 5 from /IOs/LOCK1 to /IOs/LOCK7.
+Reconnected U4 pin 7 from /IOs/LOCK0 to /IOs/LOCK6.
+Reconnected U4 pin 8 from Net-(U1-ENB) to Net-(U4-ENB).
+Updated U4 symbol association from /00000000-0000-0000-0000-000061ebca90/00000000-0000-0000-0000-000061fc2397 to /00000000-0000-0000-0000-000061ebca90/329a1e8b-e309-4d9a-a68a-94c8a32ff173.
+Reconnected Q3 pin 3 from Net-(D1-A) to Net-(D3-A).
+Reconnected U3 pin 8 from Net-(U1-ENB) to Net-(U3-ENB).
+Reconnected U3 pin 7 from /IOs/LOCK0 to /IOs/LOCK4.
+Reconnected U3 pin 5 from /IOs/LOCK1 to /IOs/LOCK5.
+Updated Q5 symbol association from /00000000-0000-0000-0000-000061ebca90/00000000-0000-0000-0000-000061f9a22a to /00000000-0000-0000-0000-000061ebca90/90347d65-daa5-4414-a60e-72c4a4d0bfb0.
+Reconnected U3 pin 2 from /IOs/LOCK_IN0 to /IOs/LOCK_IN4.
+Reconnected U3 pin 1 from Net-(U1-ENA) to Net-(U3-ENA).
+Updated U3 symbol association from /00000000-0000-0000-0000-000061ebca90/00000000-0000-0000-0000-000061fc2397 to /00000000-0000-0000-0000-000061ebca90/f14f373f-7c34-4b97-81f3-ad92c1f3f635.
+Reconnected U2 pin 8 from Net-(U1-ENB) to Net-(U2-ENB).
+Reconnected U2 pin 7 from /IOs/LOCK0 to /IOs/LOCK2.
+Reconnected U2 pin 5 from /IOs/LOCK1 to /IOs/LOCK3.
+Reconnected U2 pin 4 from /IOs/LOCK_IN1 to /IOs/LOCK_IN3.
+Reconnected U2 pin 2 from /IOs/LOCK_IN0 to /IOs/LOCK_IN2.
+Reconnected U2 pin 1 from Net-(U1-ENA) to Net-(U2-ENA).
+Updated U2 symbol association from /00000000-0000-0000-0000-000061ebca90/00000000-0000-0000-0000-000061fc2397 to /00000000-0000-0000-0000-000061ebca90/1f8c6d32-524a-4a61-9146-b464a2e4b00f.
+Updated Q4 symbol association from /00000000-0000-0000-0000-000061ebca90/9a64ff62-3964-40c4-85d5-2005a53f7bb7 to /00000000-0000-0000-0000-000061ebca90/2e4807ac-fbeb-4c4a-b1f8-ade59b8256ed.
+Reconnected Q4 pin 1 from Net-(Q2-G) to Net-(Q4-G).
+Reconnected Q4 pin 3 from Net-(D2-A) to Net-(D4-A).
+Reconnected R10 pin 2 from /IOs/LOCK1 to /IOs/LOCK3.
+Reconnected R15 pin 1 from /IOs/LOCK_DET0 to /IOs/LOCK_DET4.
+Updated R15 symbol association from /00000000-0000-0000-0000-000061ebca90/00000000-0000-0000-0000-000061f9a118 to /00000000-0000-0000-0000-000061ebca90/5d248cbb-a3ee-4746-98de-e42f1b14ef73.
+Reconnected J4 pin 3 from Net-(D2-A) to Net-(D4-A).
+Reconnected R14 pin 1 from Net-(Q1-G) to Net-(Q5-G).
+Updated R14 symbol association from /00000000-0000-0000-0000-000061ebca90/00000000-0000-0000-0000-000061f9a127 to /00000000-0000-0000-0000-000061ebca90/5689a1f5-9090-4234-bba9-7dff9da78761.
+Reconnected Q7 pin 3 from Net-(D1-A) to Net-(D7-A).
+Reconnected R13 pin 1 from Net-(Q1-G) to Net-(Q5-G).
+Reconnected R13 pin 2 from /IOs/LOCK0 to /IOs/LOCK4.
+Updated R13 symbol association from /00000000-0000-0000-0000-000061ebca90/00000000-0000-0000-0000-000061f9a12d to /00000000-0000-0000-0000-000061ebca90/e7271d92-2a59-4a4c-9ece-0f144f666454.
+Reconnected R12 pin 1 from /IOs/LOCK_DET1 to /IOs/LOCK_DET3.
+Updated R12 symbol association from /00000000-0000-0000-0000-000061ebca90/acf82a41-7d0e-472a-a831-509c7dad960c to /00000000-0000-0000-0000-000061ebca90/bc75ee53-f973-43e8-9b8a-a9dcb3717276.
+Updated J5 symbol association from /00000000-0000-0000-0000-000061ebca90/00000000-0000-0000-0000-000061f9a109 to /00000000-0000-0000-0000-000061ebca90/01534e29-1c65-493a-a183-ee503e500c0f.
+Reconnected R11 pin 1 from Net-(Q2-G) to Net-(Q4-G).
+Updated R11 symbol association from /00000000-0000-0000-0000-000061ebca90/e005b53f-12e7-4917-b024-14621842eea1 to /00000000-0000-0000-0000-000061ebca90/f1c19577-37a0-416f-b9f6-60572b592bf5.
+Reconnected J5 pin 3 from Net-(D1-A) to Net-(D5-A).
+Reconnected J4 pin 4 from /IOs/LOCK_DET1 to /IOs/LOCK_DET3.
+Reconnected R10 pin 1 from Net-(Q2-G) to Net-(Q4-G).
+Updated R10 symbol association from /00000000-0000-0000-0000-000061ebca90/a2109c77-97ea-4bdb-9450-69fe4743dba1 to /00000000-0000-0000-0000-000061ebca90/110e5a1b-0579-4342-8a50-bc9ee74117f4.
+Reconnected J5 pin 4 from /IOs/LOCK_DET0 to /IOs/LOCK_DET4.
+Reconnected R9 pin 1 from /IOs/LOCK_DET0 to /IOs/LOCK_DET2.
+Updated R9 symbol association from /00000000-0000-0000-0000-000061ebca90/00000000-0000-0000-0000-000061f9a118 to /00000000-0000-0000-0000-000061ebca90/a2a08252-e1a3-4e8e-a624-c2db73924c49.
+Reconnected J7 pin 3 from Net-(D1-A) to Net-(D7-A).
+Reconnected R8 pin 1 from Net-(Q1-G) to Net-(Q3-G).
+Updated R8 symbol association from /00000000-0000-0000-0000-000061ebca90/00000000-0000-0000-0000-000061f9a127 to /00000000-0000-0000-0000-000061ebca90/5699d61c-54a2-4d67-a252-4f0f22aa03cb.
+Updated J6 symbol association from /00000000-0000-0000-0000-000061ebca90/d37b7b18-48a2-43dd-b725-8d8200de3ad7 to /00000000-0000-0000-0000-000061ebca90/7799ac4f-bc16-4e58-80f5-ee678a479432.
+Reconnected R7 pin 1 from Net-(Q1-G) to Net-(Q3-G).
+Reconnected R7 pin 2 from /IOs/LOCK0 to /IOs/LOCK2.
+Updated R7 symbol association from /00000000-0000-0000-0000-000061ebca90/00000000-0000-0000-0000-000061f9a12d to /00000000-0000-0000-0000-000061ebca90/1e97676b-6e90-4e2b-9f52-2bc77df03034.
+Reconnected J6 pin 3 from Net-(D2-A) to Net-(D6-A).
+Reconnected J6 pin 4 from /IOs/LOCK_DET1 to /IOs/LOCK_DET5.
+Updated J7 symbol association from /00000000-0000-0000-0000-000061ebca90/00000000-0000-0000-0000-000061f9a109 to /00000000-0000-0000-0000-000061ebca90/1b84dabf-0c1a-4e32-9baa-dc91dcef677a.
+Updated J8 symbol association from /00000000-0000-0000-0000-000061ebca90/d37b7b18-48a2-43dd-b725-8d8200de3ad7 to /00000000-0000-0000-0000-000061ebca90/7a27e839-1899-4622-9983-cdac9ac2dc0d.
+Reconnected R28 pin 1 from /IOs/LOCK_EN0 to /IOs/LOCK_EN2.
+Updated R28 symbol association from /00000000-0000-0000-0000-000061ebca90/00000000-0000-0000-0000-000061f84748 to /00000000-0000-0000-0000-000061ebca90/9e823606-f83d-4ab2-8a34-e646199f153e.
+Updated D7 symbol association from /00000000-0000-0000-0000-000061ebca90/00000000-0000-0000-0000-000061f9a212 to /00000000-0000-0000-0000-000061ebca90/b1030530-6fb9-4591-98a9-0427e75660df.
+Reconnected R27 pin 2 from /IOs/LOCK_EN1 to /IOs/LOCK_EN3.
+Reconnected R27 pin 1 from Net-(U1-ENA) to Net-(U2-ENA).
+Updated R27 symbol association from /00000000-0000-0000-0000-000061ebca90/00000000-0000-0000-0000-000061f8473e to /00000000-0000-0000-0000-000061ebca90/26a5f1ab-7ebe-4985-b59a-fd3232592324.
+Reconnected D7 pin 2 from Net-(D1-A) to Net-(D7-A).
+Reconnected R28 pin 2 from Net-(U1-ENB) to Net-(U2-ENB).
+Reconnected Q7 pin 1 from Net-(Q1-G) to Net-(Q7-G).
+Updated D8 symbol association from /00000000-0000-0000-0000-000061ebca90/1fadecef-52da-4aaa-b496-044390b111f7 to /00000000-0000-0000-0000-000061ebca90/9ebdfd22-79c4-4adf-85de-91e1239ecd49.
+Reconnected D8 pin 2 from Net-(D2-A) to Net-(D8-A).
+Updated Q8 symbol association from /00000000-0000-0000-0000-000061ebca90/9a64ff62-3964-40c4-85d5-2005a53f7bb7 to /00000000-0000-0000-0000-000061ebca90/89a83a01-4313-41c3-ab5b-a217104dbb12.
+Reconnected Q8 pin 3 from Net-(D2-A) to Net-(D8-A).
+Updated J4 symbol association from /00000000-0000-0000-0000-000061ebca90/d37b7b18-48a2-43dd-b725-8d8200de3ad7 to /00000000-0000-0000-0000-000061ebca90/230b0a54-814c-4633-86d4-6288c8a4b25b.
+Reconnected R17 pin 1 from Net-(Q2-G) to Net-(Q6-G).
+Updated R16 symbol association from /00000000-0000-0000-0000-000061ebca90/a2109c77-97ea-4bdb-9450-69fe4743dba1 to /00000000-0000-0000-0000-000061ebca90/7600460e-baca-4eef-a013-d1cb4ffcadad.
+Reconnected R16 pin 1 from Net-(Q2-G) to Net-(Q6-G).
+Reconnected R16 pin 2 from /IOs/LOCK1 to /IOs/LOCK5.
+Reconnected Q8 pin 1 from Net-(Q2-G) to Net-(Q8-G).
+Updated R17 symbol association from /00000000-0000-0000-0000-000061ebca90/e005b53f-12e7-4917-b024-14621842eea1 to /00000000-0000-0000-0000-000061ebca90/eb4bc25c-40cd-4988-a59e-3364879d56c7.
+Reconnected J3 pin 4 from /IOs/LOCK_DET0 to /IOs/LOCK_DET2.
+Updated R18 symbol association from /00000000-0000-0000-0000-000061ebca90/acf82a41-7d0e-472a-a831-509c7dad960c to /00000000-0000-0000-0000-000061ebca90/407302c0-80a5-49a3-b481-c82105730bca.
+Reconnected R18 pin 1 from /IOs/LOCK_DET1 to /IOs/LOCK_DET5.
+Reconnected J3 pin 3 from Net-(D1-A) to Net-(D3-A).
+Updated J3 symbol association from /00000000-0000-0000-0000-000061ebca90/00000000-0000-0000-0000-000061f9a109 to /00000000-0000-0000-0000-000061ebca90/5bc772af-2207-48a7-a277-9bfb6a1bbd47.
+Warning: No net found for symbol U8 pin 40.
+Warning: No net found for symbol U2 pin 9.
+Warning: No net found for symbol U5 pin 10.
+Warning: No net found for symbol U4 pin 9.
+Warning: No net found for symbol U8 pin 39.
+Warning: No net found for symbol U6 pin 10.
+Warning: No net found for symbol U1 pin 9.
+Warning: No net found for symbol U4 pin 9.
+Warning: No net found for symbol U2 pin 9.
+Warning: No net found for symbol U3 pin 9.
+Warning: No net found for symbol U3 pin 9.
+Error: Multiple footprints found for 'R29'.
+Error: Multiple footprints found for 'R28'.
+Error: Multiple footprints found for 'U4'.
+Error: Multiple footprints found for 'R27'.
+Error: Multiple footprints found for 'R30'.
+Error: Multiple footprints found for 'U3'.
+Error: Multiple footprints found for 'R31'.
+Error: Multiple footprints found for 'R32'.
+Error: Multiple footprints found for 'U2'.
+
+
+Info: Total warnings: 11, errors: 9.
