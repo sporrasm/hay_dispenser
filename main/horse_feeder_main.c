@@ -14,7 +14,7 @@
 #include "ntp_client.h"
 #include "gpio_funcs.h"
 #include "AIP31068L.h"
-#include "wifi_logger.h"
+//#include "wifi_logger.h"
 
 #define LCD_ADDR 0x3e
 #define SDA_PIN  19
@@ -57,7 +57,7 @@ portMUX_TYPE screen_mux=portMUX_INITIALIZER_UNLOCKED;
 
 static const char* TAG="MAIN";
 static const char* TAG_LOCK="PulseLock";
-static const char* TAG_ALARM="UpdateAlarm";
+//static const char* TAG_ALARM="UpdateAlarm";
 
 
 int set_tz(const char* targ_tz){
@@ -133,8 +133,8 @@ void app_main(void)
 #endif
   int wifi_conn_stat=0;
   ESP_LOGI(TAG, "Initializing WiFi");
-  //wifi_conn_stat=conn_wifi();
-  start_wifi_logger();
+  wifi_conn_stat=conn_wifi();
+  //start_wifi_logger();
   if (wifi_conn_stat != 0) {
     ESP_LOGW(TAG, "Connection failed!");
     ESP_LOGI(TAG, "Restarting in 5 seconds ...");
@@ -173,8 +173,8 @@ void app_main(void)
     int lock_idx=0;
     for (int i=0;i<NUM_LOCKS+1;i++) {
       ESP_LOGD(TAG, "Index %d", i);
-      ESP_LOGD(TAG, "arr   : %ld", *(arr+i));
-      ESP_LOGD(TAG, "arr_cp: %ld", *(arr_cp+i));
+      ESP_LOGD(TAG, "arr   : %lld", *(arr+i));
+      ESP_LOGD(TAG, "arr_cp: %lld", *(arr_cp+i));
       if (*(arr) == *(arr_cp+i)) {
         lock_idx=i;
         break;
@@ -236,10 +236,13 @@ void app_main(void)
     time_t now = time(NULL);
     time_t diff = *arr - now;
     if (diff > 0) {
-      ini_timer(0,0, diff);
+      gptimer_handle_t gptimer = ini_timer(diff);
+      ESP_ERROR_CHECK(gptimer_enable(gptimer));
+      ESP_ERROR_CHECK(gptimer_start(gptimer));
+      //xTaskCreate(&updateAlarm, "updateAlarm", 2048, gptimer, 5, NULL);
     }
     else {
-      ESP_LOGW(TAG, "Time diff was negative! (%ld seconds)", diff);
+      ESP_LOGW(TAG, "Time diff was negative! (%lld seconds)", diff);
     }
     // Init lock pins
     if (lock_pin_init() != 0) {
@@ -253,25 +256,25 @@ void app_main(void)
 #endif
     // Create tasks to run in background
     xTaskCreate(&pulseLock , "pulseLock", 2048, arr, 5, NULL);
-    xTaskCreate(&updateAlarm, "updateAlarm", 2048, NULL, 5, NULL);
   }
 }
 
-void updateAlarm(void* param) {
-  time_t val = 0;
-  for (;;) {
-    xQueueReceive(update_queue, &val, portMAX_DELAY);
-    if (val > 0) {
-      ESP_LOGD(TAG_ALARM, "Setting timer to %ld seconds", val);
-      ESP_ERROR_CHECK(timer_set_counter_value(0,0,0));
-      ESP_ERROR_CHECK(timer_set_alarm_value(0,0, ((uint64_t) val)*((uint64_t)TIMER_SCALE)));
-      ESP_ERROR_CHECK(timer_set_alarm(0,0,1));
-    }
-    else {
-      ESP_LOGW(TAG_ALARM,"Invalid time value for alarm: %ld seconds!!", val);
-    }
-  }
-}
+//void updateAlarm(void* param) {
+//  time_t val = 0;
+//  gptimer_handle_t gptimer = (gptimer_handle_t) param;
+//  for (;;) {
+//    xQueueReceive(update_queue, &val, portMAX_DELAY);
+//    if (val > 0) {
+//      ESP_LOGD(TAG_ALARM, "Setting timer to %lld seconds", val);
+//      //ESP_ERROR_CHECK(timer_set_counter_value(0,0,0));
+//      //ESP_ERROR_CHECK(timer_set_alarm_value(0,0, ((uint64_t) val)*((uint64_t)TIMER_SCALE)));
+//      //ESP_ERROR_CHECK(timer_set_alarm(0,0,1));
+//    }
+//    else {
+//      ESP_LOGW(TAG_ALARM,"Invalid time value for alarm: %lld seconds!!", val);
+//    }
+//  }
+//}
 
 void updateScreenIdxLeft(void* param) {
   int* screen_idx = (int *) param;
@@ -380,6 +383,7 @@ void pulseLock(void* param) {
 #endif
   for (;;) {
     // Wait until ISR gives semaphore, increment lock_idx counter
+    ESP_LOGD(TAG_LOCK, "WAITING FOR INTERRUPT");
     xSemaphoreTake(s_timer_semaphore, portMAX_DELAY);
     ESP_LOGD(TAG_LOCK, "INTERRUPT FROM TIMER");
     ESP_LOGD(TAG_LOCK, "RELEASING LOCK ON GPIO IDX: %d", *(idxToPin+lock_idx));
@@ -404,8 +408,8 @@ void pulseLock(void* param) {
       }
     } 
     else {
-      ESP_LOGD(TAG_LOCK, "Time diff was negative! (%ld seconds)", diff);
-      ESP_LOGD(TAG_LOCK, "Increasing time_arr values %ld seconds.", offs);
+      ESP_LOGD(TAG_LOCK, "Time diff was negative! (%lld seconds)", diff);
+      ESP_LOGD(TAG_LOCK, "Increasing time_arr values %lld seconds.", offs);
       for (uint8_t i = 0; i < NUM_LOCKS; i++) {
         *(t_arr+i) += offs;
       }
@@ -443,7 +447,7 @@ void LCD_updater(void* param) {
     // Wait until it's time to update or we receive index from queue
     now=time(NULL);
     xFreq = pdMS_TO_TICKS((60 - (now - (now / 60)*60))*(1000));
-    ESP_LOGV(TAG, "Waiting %d milliseconds until next screen refresh", xFreq);
+    ESP_LOGV(TAG, "Waiting %ld milliseconds until next screen refresh", xFreq);
 #ifdef CONFIG_BUTTONS_ENABLED
     if (xQueueReceive(screen_queue, &screen_idx, xFreq) == pdFALSE) {
       if (screen_idx == 0) {

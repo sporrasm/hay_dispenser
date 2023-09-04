@@ -60,7 +60,7 @@
 #include <netinet/in.h>
 #include <netdb.h>
 
-
+static const char* TAG_NTP="NTP_CLIENT";
 
 time_t get_time()
 {

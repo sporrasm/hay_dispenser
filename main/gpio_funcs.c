@@ -2,7 +2,7 @@
 
 void IRAM_ATTR write_lock_idx_isr(void* arg) {
   int* lock_idx = (int *) arg;
-  ets_printf("Lock idx: %d", *lock_idx);
+  //ets_printf("Lock idx: %d", *lock_idx);
   BaseType_t xHigherPriorityTaskWoken=pdFALSE;
   xQueueSendFromISR(DPD_event_queue, lock_idx, &xHigherPriorityTaskWoken);
   if (xHigherPriorityTaskWoken)  {

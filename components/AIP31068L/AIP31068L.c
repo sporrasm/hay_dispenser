@@ -86,7 +86,7 @@ void LCD_quick_init(uint8_t addr, uint8_t sdaPin, uint8_t clkPin, uint8_t cols, 
   LCD_rows = rows;
   if (i2c_init() == ESP_OK) {
     // Wait 4 ticks
-    vTaskDelay(40 / portTICK_RATE_MS);
+    vTaskDelay(40 / portTICK_PERIOD_MS);
     // Reset the LCD controller (apply 8-bit, two-line and 5x10 character modes):
     LCD_command(LCD_RESET | LCD_8BIT_MODE | LCD_LINES | LCD_PIXELS);
     ets_delay_us(100); // 100 us delay
@@ -96,7 +96,7 @@ void LCD_quick_init(uint8_t addr, uint8_t sdaPin, uint8_t clkPin, uint8_t cols, 
     // Clear the LCD screen
     LCD_command(LCD_CLEAR);
     // Wait 2 ticks
-    vTaskDelay(20 / portTICK_RATE_MS);
+    vTaskDelay(20 / portTICK_PERIOD_MS);
     // Set entry mode (from left to right) 
     LCD_command(LCD_ENTRYMODE | LCD_ENTRYMODE_INCR);
   }
@@ -135,7 +135,7 @@ void LCD_init(uint8_t addr, uint8_t sdaPin, uint8_t clkPin, struct LCD_config* L
 
   if (i2c_init() == ESP_OK) {
     // Wait 4 ticks
-    vTaskDelay(40 / portTICK_RATE_MS);
+    vTaskDelay(40 / portTICK_PERIOD_MS);
     // Reset the LCD controller (apply 8-bit, two-line and 5x10 character modes):
     LCD_command(reset_byte);
     ets_delay_us(100); // 100 us delay
@@ -145,7 +145,7 @@ void LCD_init(uint8_t addr, uint8_t sdaPin, uint8_t clkPin, struct LCD_config* L
     // Clear the LCD screen
     LCD_command(LCD_CLEAR);
     // Wait 2 ticks
-    vTaskDelay(20 / portTICK_RATE_MS);
+    vTaskDelay(20 / portTICK_PERIOD_MS);
     // Set entry mode (from left to right) 
     LCD_command(entry_byte);
   }
@@ -176,13 +176,13 @@ void LCD_writeStr(char* str) {
 void LCD_home(void) {
   // According to datasheet, this commands takes 1.53ms
   LCD_writeByte(LCD_HOME, RS_CMD);
-  vTaskDelay(20 / portTICK_RATE_MS);
+  vTaskDelay(20 / portTICK_PERIOD_MS);
 }
 
 void LCD_clearScreen(void) {
   // According to datasheet, this commands takes 1.53ms
   LCD_writeByte(LCD_CLEAR, RS_CMD);
-  vTaskDelay(20 / portTICK_RATE_MS);
+  vTaskDelay(20 / portTICK_PERIOD_MS);
 }
 
 void LCD_command(uint8_t val) {

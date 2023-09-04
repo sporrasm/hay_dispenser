@@ -1,6 +1,7 @@
 #include "timer_handler.h"
 #include <inttypes.h>
 #define LOG_LOCAL_LEVEL ESP_LOG_DEBUG
+static const char* TAG_TIMER_INIT="TIMER_INIT";
 
 
 time_t* timeFromString(char** times, unsigned int len) {
@@ -85,116 +86,104 @@ void sort_time(time_t* arr, int len) {
   struct tm* time_info;
   qsort(arr, len, sizeof(*arr), comp_time);
   for (int i=0; i<len; i++) {
-    ESP_LOGD("TAG_TIMER_INIT", "Sorted array[%d]: %ld", i, arr[i]);
+    ESP_LOGD("TAG_TIMER_INIT", "Sorted array[%d]: %lld", i, arr[i]);
     time_info=localtime(&arr[i]);
     strftime(timestr, sizeof(timestr), "%H:%M:%S", time_info);
     ESP_LOGD("TAG_TIMER_INIT", "Corresponding time stamp: %s", timestr);
   }
 }
 
-void IRAM_ATTR timer_group0_isr(void *arg)
+static bool IRAM_ATTR timer_isr(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_data)
 {
-    int need_yield;
-
-    int timer_idx = (int) arg;
-
+    BaseType_t high_task_awoken = pdFALSE;
+    //gptimer_stop(timer);
     /* Retrieve the interrupt status and the counter value from the timer that reported the interrupt */
-    uint32_t intr_status = TIMERG0.int_st_timers.val;
-    TIMERG0.hw_timer[timer_idx].update = 1;
+    //uint32_t intr_status = TIMERG0.int_st_timers.val;
+    //TIMERG0.hw_timer[timer_idx].update = 1;
 
     /* Clear the interrupt (either Timer 0 or 1, whichever caused this interrupt */
-    if ((intr_status & BIT(timer_idx)) && timer_idx == TIMER_0) {
-        TIMERG0.int_clr_timers.t0 = 1;
-    } else if ((intr_status & BIT(timer_idx)) && timer_idx == TIMER_1) {
-        TIMERG0.int_clr_timers.t1 = 1;
-    }
+    //if ((intr_status & BIT(timer_idx)) && timer_idx == TIMER_0) {
+    //    TIMERG0.int_clr_timers.t0 = 1;
+    //} else if ((intr_status & BIT(timer_idx)) && timer_idx == TIMER_1) {
+    //    TIMERG0.int_clr_timers.t1 = 1;
+    //}
 
     // Give a semaphore to the Simulink task, so that it wakes up and executes 1 loop
-    if (xSemaphoreGiveFromISR(s_timer_semaphore, &need_yield) != pdPASS)
-    {
-        ESP_EARLY_LOGD("timer_group0_isr", "timer queue overflow!");
-
-    	return;
-    }
-
-    if (need_yield == pdTRUE)
-    {
-        portYIELD_FROM_ISR();
-    }
-
+    xSemaphoreGiveFromISR(s_timer_semaphore, &high_task_awoken);
+    return (high_task_awoken == pdTRUE);
 }
 
-void IRAM_ATTR timer_group1_isr(void *arg)
-{
-    int need_yield;
-
-    int timer_idx = (int) arg;
-
-    /* Retrieve the interrupt status and the counter value from the timer that reported the interrupt */
-    uint32_t intr_status = TIMERG0.int_st_timers.val;
-    TIMERG0.hw_timer[timer_idx].update = 1;
-
-    /* Clear the interrupt (either Timer 0 or 1, whichever caused this interrupt */
-    if ((intr_status & BIT(timer_idx)) && timer_idx == TIMER_0) {
-        TIMERG0.int_clr_timers.t0 = 1;
-    } else if ((intr_status & BIT(timer_idx)) && timer_idx == TIMER_1) {
-        TIMERG0.int_clr_timers.t1 = 1;
-    }
-    // Try to give a semaphore to the pulseLock task 
-    if (xSemaphoreGiveFromISR(s_timer_semaphore, &need_yield) != pdPASS)
-    {
-        ESP_EARLY_LOGD("timer_group0_isr", "timer queue overflow!");
-
-    	return;
-    }
-
-    if (need_yield == pdTRUE)
-    {
-        portYIELD_FROM_ISR();
-    }
-
-}
-void ini_timer(int group, int timer, uint64_t time_interval) {
+//void IRAM_ATTR timer_group1_isr(void *arg)
+//{
+//    int need_yield;
+//
+//    int timer_idx = (int) arg;
+//
+//    /* Retrieve the interrupt status and the counter value from the timer that reported the interrupt */
+//    uint32_t intr_status = TIMERG0.int_st_timers.val;
+//    TIMERG0.hw_timer[timer_idx].update = 1;
+//
+//    /* Clear the interrupt (either Timer 0 or 1, whichever caused this interrupt */
+//    if ((intr_status & BIT(timer_idx)) && timer_idx == TIMER_0) {
+//        TIMERG0.int_clr_timers.t0 = 1;
+//    } else if ((intr_status & BIT(timer_idx)) && timer_idx == TIMER_1) {
+//        TIMERG0.int_clr_timers.t1 = 1;
+//    }
+//    // Try to give a semaphore to the pulseLock task 
+//    if (xSemaphoreGiveFromISR(s_timer_semaphore, &need_yield) != pdPASS)
+//    {
+//        ESP_EARLY_LOGD("timer_group0_isr", "timer queue overflow!");
+//
+//    	return;
+//    }
+//
+//    if (need_yield == pdTRUE)
+//    {
+//        portYIELD_FROM_ISR();
+//    }
+//
+//}
+gptimer_handle_t ini_timer(uint64_t time_interval) {
   /*
       This function is used to initialize a hardware timer. The timer will
       trigger an interrupt, which in turn will trigger the next lock to
       be pulsed and dispense the hay.
       Parameters:
-      int group:
-        Timer group, either 0 or 1
-      int timer
-        Timer index, either 0 or 1
-      int time_interval 
+      uint64_t time_interval 
         Time until alarm sets off (in seconds)
+      Returns:
   */
-  // Initialize timer struct, contants defined in hal/include/hal/timer_types.h
-  timer_config_t config = {
-    .divider = TIMER_DIVIDER,
-    .alarm_en = TIMER_ALARM_EN,
-    .counter_en = TIMER_PAUSE,
-    .counter_dir = TIMER_COUNT_UP,
-    .auto_reload = TIMER_AUTORELOAD_DIS,
-    .intr_type = TIMER_INTR_LEVEL, // Note, mandatory in alarm mode
-  };
-  ESP_ERROR_CHECK(timer_init(group, timer, &config));
-  ESP_ERROR_CHECK(timer_set_counter_value(group, timer, 0x00000000ULL));
-  uint64_t timer_value = time_interval*TIMER_SCALE;
-  ESP_LOGI(TAG_TIMER_INIT, "Initing timer with freq: %d and clock_div: %d", TIMER_BASE_CLK, TIMER_DIVIDER);
-  ESP_LOGI(TAG_TIMER_INIT, "Timer tickrate is %d ticks/second", TIMER_SCALE);
-  // The input time can be cast to 32 bit uint, since there are enough bits to represent 136 years. 
-  ESP_LOGI(TAG_TIMER_INIT, "Initial alarm will be set to %d seconds from currrent time", (uint32_t) time_interval);
-  printf("Alarm time in timer units %" PRIu64 "\n", timer_value);
-  ESP_ERROR_CHECK(timer_set_alarm_value(group, timer, timer_value));
-  ESP_ERROR_CHECK(timer_enable_intr(group, timer));
+  // Configure timer
+  example_queue_element_t ele;
+  QueueHandle_t queue = xQueueCreate(10, sizeof(example_queue_element_t));
+  if (!queue) {
+      ESP_LOGE(TAG_TIMER_INIT, "Creating queue failed");
+      return NULL;
+  }
 
-  if (!group) {
-    ESP_ERROR_CHECK(timer_isr_register(TIMER_GROUP_0, timer, timer_group0_isr,
-        (void *) timer, ESP_INTR_FLAG_IRAM, NULL));
-  }
-  else {
-    ESP_ERROR_CHECK(timer_isr_register(TIMER_GROUP_1, timer, timer_group1_isr,
-        (void *) timer, ESP_INTR_FLAG_IRAM, NULL));
-  }
-  ESP_ERROR_CHECK(timer_start(group, timer));
+
+  gptimer_handle_t gptimer=NULL;
+  gptimer_config_t timer_config = {
+    .clk_src = GPTIMER_CLK_SRC_DEFAULT,
+    .direction = GPTIMER_COUNT_UP,
+    .resolution_hz = 1 * 1000 * 1000, 
+  };
+  // Create timer
+  ESP_ERROR_CHECK(gptimer_new_timer(&timer_config, &gptimer));
+  // Alarm config
+  gptimer_alarm_config_t alarm_config = {
+    .reload_count=0,
+    .alarm_count=time_interval * TIMER_SCALE,
+    .flags.auto_reload_on_alarm=true,
+  };
+  // Register alarm
+  ESP_ERROR_CHECK(gptimer_set_alarm_action(gptimer, &alarm_config));
+  // Configure ISR action
+  gptimer_event_callbacks_t cbs = {
+    .on_alarm = timer_isr,
+  };
+  // Register ISR
+  ESP_ERROR_CHECK(gptimer_register_event_callbacks(gptimer, &cbs, queue));
+  return gptimer;
 }
 

@@ -44,6 +44,4 @@ typedef struct
 
 time_t get_time();
 
-static const char* TAG_NTP="NTP_CLIENT";
-
 #endif
