@@ -38,5 +38,27 @@ config BUTTONS_ENABLED
     help
     Toggle button functionality on/off
 endif 
+config NUM_LOCKS
+    int "Number of locks"
+    default 8
+    help
+    "Number of locks in hay dispenser"
+endmenu
+menu "I2C configuration"
+config I2C_PULLUP_EN
+    bool "I2C pullup"
+    default false
+    help
+        This enables the internal pullup resistors for I2C data and clock pins
+config SDA_PIN
+    int "SDA pin"
+    default 19
+    help
+        Configure the data pin for I2C intercace
+config SCL_PIN
+    int "SCL pin"
+    default 18
+    help
+        Configure the clock pin for I2C intercace
 endmenu
 

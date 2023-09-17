@@ -13,17 +13,21 @@
 #include "timer_handler.h"
 #include "ntp_client.h"
 #include "gpio_funcs.h"
+#include "TCA6408A.h"
 #include "AIP31068L.h"
 //#include "wifi_logger.h"
 
 #define LCD_ADDR 0x3e
-#define SDA_PIN  19
-#define SCL_PIN  18
+#define PULLUP_EN CONFIG_I2C_PULLUP_EN
+#define SDA_PIN CONFIG_SDA_PIN //19
+#define SCL_PIN CONFIG_SCL_PIN //18
 #define LCD_COLS 16 
 #define LCD_ROWS 2
-#define NUM_LOCKS 6 // Number of locks in dispenser array
+#define NUM_LOCKS 8// Number of locks in dispenser array
 #define STRLEN 8 // Length of one time stamp string, not counting the null byte
 #define LOCK_MS 500 // Time to pulse the lock in milliseconds
+#define LOCK_OUTPUT_ADDR 0x21
+#define LOCK_INPUT_ADDR 0x20
 
 void LCD_updater(void* param);
 void pulseLock(void* param);
@@ -73,7 +77,7 @@ int set_tz(const char* targ_tz){
   }
 }
 
-int init_horse_feeder(void) {
+int set_timezone(void) {
   // TZ variable for Finland
   const char* targ_tz="EET-2EEST,M3.5.0/3,M10.5.0/4";
   // Check first if timezone is set
@@ -94,9 +98,25 @@ int init_horse_feeder(void) {
   }
 }
 
+void init_i2c_interface(void)
+{
+  // Initialize i2c interface with esp32 in master mode
+  i2c_config_t conf = {
+    .mode = I2C_MODE_MASTER,
+    .sda_io_num = SDA_PIN,
+    .scl_io_num = SCL_PIN,
+    .sda_pullup_en = PULLUP_EN,
+    .scl_pullup_en = PULLUP_EN,
+    .master.clk_speed = 100000
+  };
+
+  ESP_ERROR_CHECK(i2c_param_config(I2C_NUM_0, &conf));
+  ESP_ERROR_CHECK(i2c_driver_install(I2C_NUM_0, I2C_MODE_MASTER, 0, 0, 0));
+}
+
+
 void init_LCD() {
   ESP_LOGI(TAG, "Starting up LCD");
-  //LCD_quick_init(LCD_ADDR, SDA_PIN, SCL_PIN, LCD_COLS, LCD_ROWS);
   struct LCD_config lcd_conf;
   lcd_conf.rows=LCD_ROWS;
   lcd_conf.cols=LCD_COLS;
@@ -120,13 +140,16 @@ void init_LCD() {
 void app_main(void)
 {
   // The parameter to strptime must given as hour (0-23) and minute (0-59)
-  char* times[NUM_LOCKS] = {"21:00:00", "00:00:00", "03:00:00", "06:00:00", "09:00:00", "12:00:00"};
+  char* times[NUM_LOCKS] = {"21:00:00", "00:00:00", "03:00:00", "06:00:00", "09:00:00", "12:00:00",
+    "15:00:00", "18:00:00"};
   // Table mapping lock indices to GPIO pin numbers
   char buf[6] = { 0 };
-  int init_stat=init_horse_feeder();
+  int init_stat=set_timezone();
   if (init_stat != 0) {
     ESP_LOGW(TAG, "Initialization failed!");
   }
+  init_i2c_interface();
+  init_output_controllers(LOCK_OUTPUT_ADDR);
 #ifdef CONFIG_LCD_ENABLED
   ESP_LOGI(TAG, "LCD configured through menuconfig! Initializing LCD.");
   init_LCD();
@@ -259,23 +282,6 @@ void app_main(void)
   }
 }
 
-//void updateAlarm(void* param) {
-//  time_t val = 0;
-//  gptimer_handle_t gptimer = (gptimer_handle_t) param;
-//  for (;;) {
-//    xQueueReceive(update_queue, &val, portMAX_DELAY);
-//    if (val > 0) {
-//      ESP_LOGD(TAG_ALARM, "Setting timer to %lld seconds", val);
-//      //ESP_ERROR_CHECK(timer_set_counter_value(0,0,0));
-//      //ESP_ERROR_CHECK(timer_set_alarm_value(0,0, ((uint64_t) val)*((uint64_t)TIMER_SCALE)));
-//      //ESP_ERROR_CHECK(timer_set_alarm(0,0,1));
-//    }
-//    else {
-//      ESP_LOGW(TAG_ALARM,"Invalid time value for alarm: %lld seconds!!", val);
-//    }
-//  }
-//}
-
 void updateScreenIdxLeft(void* param) {
   int* screen_idx = (int *) param;
   int curr_state=0;
@@ -375,7 +381,8 @@ void pulseLock(void* param) {
   time_t* t_arr = (time_t*) param;
   time_t now = 0, diff = 0, offs=0;
   int lock_idx = 0;
-  int idxToPin[NUM_LOCKS] = { LOCK_GPIO_0, LOCK_GPIO_1, LOCK_GPIO_2, LOCK_GPIO_3, LOCK_GPIO_4, LOCK_GPIO_5 };
+  int idxToPin[NUM_LOCKS] = {8,4,2,1,128,64,32,16};
+  //int idxToPin[NUM_LOCKS] = { LOCK_GPIO_0, LOCK_GPIO_1, LOCK_GPIO_2, LOCK_GPIO_3, LOCK_GPIO_4, LOCK_GPIO_5 };
 #ifdef CONFIG_FEEDER_TESTMODE
   offs = CONFIG_TESTMODE_INTERVAL*6;
 #else
@@ -386,10 +393,10 @@ void pulseLock(void* param) {
     ESP_LOGD(TAG_LOCK, "WAITING FOR INTERRUPT");
     xSemaphoreTake(s_timer_semaphore, portMAX_DELAY);
     ESP_LOGD(TAG_LOCK, "INTERRUPT FROM TIMER");
-    ESP_LOGD(TAG_LOCK, "RELEASING LOCK ON GPIO IDX: %d", *(idxToPin+lock_idx));
-    gpio_set_level(*(idxToPin+lock_idx), 1); // MOSFET drivers are active high 
+    ESP_LOGD(TAG_LOCK, "RELEASING LOCK WITH PORT MASK: %X", *(idxToPin+lock_idx));
+    write_output(LOCK_OUTPUT_ADDR,*(idxToPin+lock_idx));
     vTaskDelay(pdMS_TO_TICKS(LOCK_MS));
-    gpio_set_level(*(idxToPin+lock_idx), 0);
+    write_output(LOCK_OUTPUT_ADDR,0);
     // Increment lock idx, loop back to zero if over range
     ESP_LOGD(TAG_LOCK, "LOCK IDX WAS: %d, Incrementing.", lock_idx);
     if (lock_idx >= 5) {

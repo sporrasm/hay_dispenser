@@ -4,3 +4,6 @@
 [submodule "components/AIP31068L"]
 	path = components/AIP31068L
 	url = git@github.com:sporrasm/AIP31068L.git
+[submodule "components/TCA6408A"]
+	path = components/TCA6408A
+	url = git@github.com:sporrasm/TCA6408A.git
