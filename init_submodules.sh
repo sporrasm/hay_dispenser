@@ -6,7 +6,9 @@
 DIR=`pwd`
 
 SUBMODULES="\
-    ./components/esp-wifi-logger/ \
+    ./src/components/esp-wifi-logger/ \
+    ./src/components/AIP31068L/ \
+    ./src/components/TCA6408A/ \
 "
 git submodule sync
 for mod in $SUBMODULES; do 
