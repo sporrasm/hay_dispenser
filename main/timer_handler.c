@@ -1,5 +1,4 @@
 #include "timer_handler.h"
-#include <inttypes.h>
 #define LOG_LOCAL_LEVEL ESP_LOG_DEBUG
 static const char* TAG_TIMER_INIT="TIMER_INIT";
 
@@ -96,53 +95,12 @@ void sort_time(time_t* arr, int len) {
 static bool IRAM_ATTR timer_isr(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_data)
 {
     BaseType_t high_task_awoken = pdFALSE;
-    //gptimer_stop(timer);
-    /* Retrieve the interrupt status and the counter value from the timer that reported the interrupt */
-    //uint32_t intr_status = TIMERG0.int_st_timers.val;
-    //TIMERG0.hw_timer[timer_idx].update = 1;
-
-    /* Clear the interrupt (either Timer 0 or 1, whichever caused this interrupt */
-    //if ((intr_status & BIT(timer_idx)) && timer_idx == TIMER_0) {
-    //    TIMERG0.int_clr_timers.t0 = 1;
-    //} else if ((intr_status & BIT(timer_idx)) && timer_idx == TIMER_1) {
-    //    TIMERG0.int_clr_timers.t1 = 1;
-    //}
-
-    // Give a semaphore to the Simulink task, so that it wakes up and executes 1 loop
+    // Give a semaphore to the pulseLock task, so that it wakes up and executes 1 loop
+    gptimer_stop(timer);
     xSemaphoreGiveFromISR(s_timer_semaphore, &high_task_awoken);
     return (high_task_awoken == pdTRUE);
 }
 
-//void IRAM_ATTR timer_group1_isr(void *arg)
-//{
-//    int need_yield;
-//
-//    int timer_idx = (int) arg;
-//
-//    /* Retrieve the interrupt status and the counter value from the timer that reported the interrupt */
-//    uint32_t intr_status = TIMERG0.int_st_timers.val;
-//    TIMERG0.hw_timer[timer_idx].update = 1;
-//
-//    /* Clear the interrupt (either Timer 0 or 1, whichever caused this interrupt */
-//    if ((intr_status & BIT(timer_idx)) && timer_idx == TIMER_0) {
-//        TIMERG0.int_clr_timers.t0 = 1;
-//    } else if ((intr_status & BIT(timer_idx)) && timer_idx == TIMER_1) {
-//        TIMERG0.int_clr_timers.t1 = 1;
-//    }
-//    // Try to give a semaphore to the pulseLock task 
-//    if (xSemaphoreGiveFromISR(s_timer_semaphore, &need_yield) != pdPASS)
-//    {
-//        ESP_EARLY_LOGD("timer_group0_isr", "timer queue overflow!");
-//
-//    	return;
-//    }
-//
-//    if (need_yield == pdTRUE)
-//    {
-//        portYIELD_FROM_ISR();
-//    }
-//
-//}
 gptimer_handle_t ini_timer(uint64_t time_interval) {
   /*
       This function is used to initialize a hardware timer. The timer will
@@ -154,13 +112,6 @@ gptimer_handle_t ini_timer(uint64_t time_interval) {
       Returns:
   */
   // Configure timer
-  example_queue_element_t ele;
-  QueueHandle_t queue = xQueueCreate(10, sizeof(example_queue_element_t));
-  if (!queue) {
-      ESP_LOGE(TAG_TIMER_INIT, "Creating queue failed");
-      return NULL;
-  }
-
 
   gptimer_handle_t gptimer=NULL;
   gptimer_config_t timer_config = {
@@ -183,7 +134,7 @@ gptimer_handle_t ini_timer(uint64_t time_interval) {
     .on_alarm = timer_isr,
   };
   // Register ISR
-  ESP_ERROR_CHECK(gptimer_register_event_callbacks(gptimer, &cbs, queue));
+  ESP_ERROR_CHECK(gptimer_register_event_callbacks(gptimer, &cbs, NULL));
   return gptimer;
 }
 

@@ -16,12 +16,7 @@ time_t* timeFromString(char** times, unsigned int len);
 gptimer_handle_t ini_timer(uint64_t time_interval);
 void sort_time(time_t* arr, int len);
 int comp_time(const void* elem1, const void* elem2);
-void IRAM_ATTR timer_group0_isr(void *arg);
-void IRAM_ATTR timer_group1_isr(void* arg);
 
-// TIMER_BASE_CLK should be 80 MHz, configure timer to tick at 1 MHz
-//#define TIMER_DIVIDER 80
-//#define TIMER_SCALE (TIMER_BASE_CLK / TIMER_DIVIDER)
 #define TIMER_SCALE 1000000
 
 typedef struct {
