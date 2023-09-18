@@ -12,13 +12,17 @@
 #include <driver/i2c.h>
 #include "timer_handler.h"
 #include "ntp_client.h"
-#include "gpio_funcs.h"
+//#include "gpio_funcs.h"
 #include "TCA6408A.h"
 #include "AIP31068L.h"
 //#include "wifi_logger.h"
 
 #define LCD_ADDR 0x3e
-#define PULLUP_EN CONFIG_I2C_PULLUP_EN
+#ifndef CONFIG_I2C_PULLUP_EN
+#define PULLUP_EN 1
+#else
+#define PULLUP_EN 0
+#endif
 #define SDA_PIN CONFIG_SDA_PIN //19
 #define SCL_PIN CONFIG_SCL_PIN //18
 #define LCD_COLS 16 
@@ -61,7 +65,7 @@ portMUX_TYPE screen_mux=portMUX_INITIALIZER_UNLOCKED;
 
 static const char* TAG="MAIN";
 static const char* TAG_LOCK="PulseLock";
-//static const char* TAG_ALARM="UpdateAlarm";
+static const char* TAG_ALARM="UpdateAlarm";
 
 
 int set_tz(const char* targ_tz){
@@ -225,31 +229,18 @@ void app_main(void)
           ESP_LOGD(TAG,"Succesfully dynamically allocated. Array element at idx %d is %s", i, time_arr[i]);
         }
       }
-#ifdef CONFIG_BUTTONS_ENABLED
-      int* screen_idx = pvPortMalloc(sizeof(int));
-      *screen_idx=0;
-      screen_queue = xQueueCreate(4, sizeof(int));
-      if (screen_queue == NULL) {
-        ESP_LOGW(TAG, "Queue creation failed, restarting in 5 s...");
-        vTaskDelay(pdMS_TO_TICKS(5000));
-        esp_restart();
-      }
-      // Tasks to update screen index (for chaging the view)
-      xTaskCreate(&updateScreenIdxLeft, "updateScreenIdxLeft", 2048, screen_idx, 5, NULL);
-      xTaskCreate(&updateScreenIdxRight, "updateScreenIdxRight", 2048, screen_idx, 5, NULL);
-#endif
       // Create LCD updater task
       xTaskCreate(&LCD_updater, "LCD_updater", 2048, time_arr, 5, NULL);
 #endif
     
     // Time semaphore and update queue
     s_timer_semaphore = xSemaphoreCreateBinary();
-    update_queue = xQueueCreate(4, sizeof(time_t));
     if (s_timer_semaphore == NULL) {
       ESP_LOGW(TAG, "Semaphore creation failed, restarting in 5 s...");
       vTaskDelay(pdMS_TO_TICKS(5000));
       esp_restart();
     }
+    update_queue = xQueueCreate(4, sizeof(time_t));
     if (update_queue == NULL) {
       ESP_LOGW(TAG, "Queue creation failed, restarting in 5 s...");
       vTaskDelay(pdMS_TO_TICKS(5000));
@@ -258,111 +249,27 @@ void app_main(void)
     // Init timers
     time_t now = time(NULL);
     time_t diff = *arr - now;
+    gptimer_handle_t timer_handle=NULL;
     if (diff > 0) {
-      gptimer_handle_t gptimer = ini_timer(diff);
-      ESP_ERROR_CHECK(gptimer_enable(gptimer));
-      ESP_ERROR_CHECK(gptimer_start(gptimer));
-      //xTaskCreate(&updateAlarm, "updateAlarm", 2048, gptimer, 5, NULL);
+      timer_handle = ini_timer(diff);
+      ESP_ERROR_CHECK(gptimer_enable(timer_handle));
+      ESP_ERROR_CHECK(gptimer_start(timer_handle));
     }
     else {
       ESP_LOGW(TAG, "Time diff was negative! (%lld seconds)", diff);
     }
-    // Init lock pins
-    if (lock_pin_init() != 0) {
-      ESP_LOGW(TAG, "Lock GPIO init failed, invalid args!");
-    }
-    // Init buttons
-#ifdef CONFIG_BUTTONS_ENABLED
-    if (button_pin_init() != 0) {
-      ESP_LOGW(TAG, "Button GPIO init failed, invalid args!");
-    }
-#endif
     // Create tasks to run in background
-    xTaskCreate(&pulseLock , "pulseLock", 2048, arr, 5, NULL);
-  }
-}
-
-void updateScreenIdxLeft(void* param) {
-  int* screen_idx = (int *) param;
-  int curr_state=0;
-  int num_edges=0;
-  int last_state=0;
-  int idx=0;
-  int debounce_time=0;
-  for (;;) {
-    // Ensure that ISR doesn't write to variables
-    portENTER_CRITICAL(&lmux);
-    // Read the last status from button
-    num_edges=lnum_edges;
-    debounce_time=ldebounce_tick;
-    last_state=lstate;
-    portEXIT_CRITICAL(&lmux);
-    // Read the current state of the button
-    curr_state=gpio_get_level(LEFT_PIN);
-    // Debounce switch in software
-    if ((num_edges != 0) && (curr_state==last_state) && \
-        ((xTaskGetTickCount() - debounce_time) > pdMS_TO_TICKS(DEBOUNCE_MS))) {
-      (*screen_idx)--;
-    if (*screen_idx<0) {
-        *screen_idx=6;
-      }
-      ESP_LOGD(TAG, "Screen idx is now: %d", *screen_idx);
-      idx=*screen_idx;
-      if (xQueueSend(screen_queue, (void *) &idx, pdMS_TO_TICKS(100) ) != pdPASS) {
-        ESP_LOGW(TAG, "Failed to update screen_idx");
-      }
-      // Reset edge counter
-      portENTER_CRITICAL(&lmux);
-      lnum_edges=0;
-      portEXIT_CRITICAL(&lmux);
-      vTaskDelay(pdMS_TO_TICKS(10));
-    } 
-    else {
-      vTaskDelay(pdMS_TO_TICKS(10));
+    if (xTaskCreate(&pulseLock , "pulseLock", 2048, arr, 5, NULL) != pdPASS) {
+      ESP_LOGW(TAG, "Couldn't create task for function pulseLock");
+      esp_restart();
+    }
+    if (xTaskCreate(&updateAlarm, "updateAlarm", 2048, timer_handle, 5, NULL) != pdPASS) {
+      ESP_LOGW(TAG, "Couldn't create task for function pulseLock");
+      esp_restart();
     }
   }
 }
 
-void updateScreenIdxRight(void* param) {
-  int* screen_idx= (int*) param;
-  int curr_state=0;
-  int num_edges=0;
-  int last_state=0;
-  int debounce_time=0;
-  int idx=0;
-  for (;;) {
-    // Ensure that ISR doesn't write to variables
-    portENTER_CRITICAL(&rmux);
-    // Read the last status from button
-    num_edges=rnum_edges;
-    debounce_time=rdebounce_tick;
-    last_state=rstate;
-    portEXIT_CRITICAL(&rmux);
-    // Read the current state of the button
-    curr_state=gpio_get_level(LEFT_PIN);
-    // Debounce switch in software
-    if ((num_edges != 0) && (curr_state==last_state) && ((xTaskGetTickCount() - debounce_time) > pdMS_TO_TICKS(DEBOUNCE_MS))) {
-      (*screen_idx)++;
-      if (*screen_idx>6) {
-        (*screen_idx)=0;
-      }
-      ESP_LOGD(TAG, "Screen idx is now: %d", *screen_idx);
-      idx=*screen_idx;
-      if (xQueueSend(screen_queue, (void *) &idx, pdMS_TO_TICKS(100) ) != pdPASS) {
-        ESP_LOGW(TAG, "Failed to update screen_idx");
-      }
-      // Reset edge counter
-      portENTER_CRITICAL(&rmux);
-      rnum_edges=0;
-      portEXIT_CRITICAL(&rmux);
-      vTaskDelay(pdMS_TO_TICKS(10));
-    } 
-    else {
-      vTaskDelay(pdMS_TO_TICKS(10));
-    }
-  }
-}
-  
 void pulseLock(void* param) {
   /*
     This function is responsible for pulsing the lock when the hardware
@@ -382,7 +289,6 @@ void pulseLock(void* param) {
   time_t now = 0, diff = 0, offs=0;
   int lock_idx = 0;
   int idxToPin[NUM_LOCKS] = {8,4,2,1,128,64,32,16};
-  //int idxToPin[NUM_LOCKS] = { LOCK_GPIO_0, LOCK_GPIO_1, LOCK_GPIO_2, LOCK_GPIO_3, LOCK_GPIO_4, LOCK_GPIO_5 };
 #ifdef CONFIG_FEEDER_TESTMODE
   offs = CONFIG_TESTMODE_INTERVAL*6;
 #else
@@ -399,7 +305,7 @@ void pulseLock(void* param) {
     write_output(LOCK_OUTPUT_ADDR,0);
     // Increment lock idx, loop back to zero if over range
     ESP_LOGD(TAG_LOCK, "LOCK IDX WAS: %d, Incrementing.", lock_idx);
-    if (lock_idx >= 5) {
+    if (lock_idx >= NUM_LOCKS-1) {
       lock_idx=0; 
       ESP_LOGD(TAG_LOCK, "LOCK IDX OVERRANGE, Looping back to zero");
     }
@@ -443,7 +349,6 @@ void LCD_updater(void* param) {
     ESP_LOGD(TAG,"String at idx %d is %s", i, *(times+i));
   }
   char txtbuf[16];
-  int screen_idx=0;
   time_t now;
   struct tm timeinfo;
   TickType_t xLastWakeTime;
@@ -455,87 +360,6 @@ void LCD_updater(void* param) {
     now=time(NULL);
     xFreq = pdMS_TO_TICKS((60 - (now - (now / 60)*60))*(1000));
     ESP_LOGV(TAG, "Waiting %ld milliseconds until next screen refresh", xFreq);
-#ifdef CONFIG_BUTTONS_ENABLED
-    if (xQueueReceive(screen_queue, &screen_idx, xFreq) == pdFALSE) {
-      if (screen_idx == 0) {
-        vTaskDelayUntil(&xLastWakeTime, xFreq);
-        LCD_clearScreen();
-        LCD_setCursor(0,0);
-        LCD_writeStr("PonyFeeder 3000");
-        LCD_setCursor(0, 1);
-        now=time(NULL);
-        localtime_r(&now, &timeinfo);
-        sprintf(txtbuf, "TIME: %02d:%02d", timeinfo.tm_hour, timeinfo.tm_min);
-        LCD_writeStr(txtbuf);
-      }
-    } 
-    // Received something from queue, display alarm times
-    else {
-      switch (screen_idx) {
-        case 0:
-          LCD_clearScreen();
-          LCD_setCursor(0,0);
-          LCD_writeStr("PonyFeeder 3000");
-          LCD_setCursor(0, 1);
-          now=time(NULL);
-          localtime_r(&now, &timeinfo);
-          sprintf(txtbuf, "TIME: %02d:%02d", timeinfo.tm_hour, timeinfo.tm_min);
-          LCD_writeStr(txtbuf);
-          break;
-        case 1:
-          LCD_clearScreen();
-          LCD_setCursor(0,0);
-          LCD_writeStr("Alarm time for");
-          LCD_setCursor(0,1);
-          sprintf(txtbuf, "LOCK1: %s", times[0]);
-          LCD_writeStr(txtbuf);
-          break;
-        case 2:
-          LCD_clearScreen();
-          LCD_setCursor(0,0);
-          LCD_writeStr("Alarm time for");
-          LCD_setCursor(0,1);
-          sprintf(txtbuf, "LOCK2: %s", times[1]);
-          LCD_writeStr(txtbuf);
-          break;
-        case 3:
-          LCD_clearScreen();
-          LCD_setCursor(0,0);
-          LCD_writeStr("Alarm time for");
-          LCD_setCursor(0,1);
-          sprintf(txtbuf, "LOCK3: %s", times[2]);
-          LCD_writeStr(txtbuf);
-          break;
-        case 4:
-          LCD_clearScreen();
-          LCD_setCursor(0,0);
-          LCD_writeStr("Alarm time for");
-          LCD_setCursor(0,1);
-          sprintf(txtbuf, "LOCK4: %s", times[3]);
-          LCD_writeStr(txtbuf);
-          break;
-        case 5:
-          LCD_clearScreen();
-          LCD_setCursor(0,0);
-          LCD_writeStr("Alarm time for");
-          LCD_setCursor(0,1);
-          sprintf(txtbuf, "LOCK5: %s", times[4]);
-          LCD_writeStr(txtbuf);
-          break;
-        case 6:
-          LCD_clearScreen();
-          LCD_setCursor(0,0);
-          LCD_writeStr("Alarm time for");
-          LCD_setCursor(0,1);
-          sprintf(txtbuf, "LOCK6: %s", times[5]);
-          LCD_writeStr(txtbuf);
-          break;
-        default:
-          screen_idx=0;
-          break;
-      } 
-    }
-#else
     vTaskDelayUntil(&xLastWakeTime, xFreq);
     LCD_clearScreen();
     LCD_setCursor(0,0);
@@ -545,6 +369,36 @@ void LCD_updater(void* param) {
     localtime_r(&now, &timeinfo);
     sprintf(txtbuf, "TIME: %02d:%02d", timeinfo.tm_hour, timeinfo.tm_min);
     LCD_writeStr(txtbuf);
-#endif
+  }
+}
+
+void updateAlarm(void* param) {
+  uint64_t val = 0;
+  uint64_t curr_val = 0;
+  gptimer_handle_t timer_handle = (gptimer_handle_t) param;
+  while (1) {
+    ESP_LOGD(TAG_ALARM, "Waiting on update_queue");
+    xQueueReceive(update_queue, &val, portMAX_DELAY);
+    ESP_LOGD(TAG_ALARM, "Received from update_queue: %lld", val);
+    if (val > 0) {
+      gptimer_alarm_config_t alarm_config = {
+        .alarm_count = 1000 * 1000 * val
+      };
+      ESP_ERROR_CHECK(gptimer_set_alarm_action(timer_handle, &alarm_config));
+      ESP_LOGD(TAG_ALARM, "Setting timer to %lld seconds", val);
+      ESP_ERROR_CHECK(gptimer_get_raw_count(timer_handle, &curr_val));
+      ESP_LOGD(TAG_ALARM, "Current timer value was %lld microseconds", curr_val);
+      if (curr_val != 0) {
+        ESP_ERROR_CHECK(gptimer_set_raw_count(timer_handle, 0));
+        ESP_ERROR_CHECK(gptimer_start(timer_handle));
+      }
+      else {
+        ESP_LOGD(TAG_ALARM, "Timer already set to 0, starting.");
+        ESP_ERROR_CHECK(gptimer_start(timer_handle));
+      }
+    }
+    else {
+      ESP_LOGW(TAG_ALARM,"Invalid time value for alarm: %lld seconds!!", val);
+    }
   }
 }
