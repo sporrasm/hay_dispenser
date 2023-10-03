@@ -5,7 +5,7 @@ pin_hole_radius = 13 / 2;
 mount_hole_radius = 1.7;
 lock_hole_radius = 4;
 hole_loc_x=37;
-$fn=30;
+$fn=128;
 
 diff_hole_y=24;
 wall_thickness_x = 10;
