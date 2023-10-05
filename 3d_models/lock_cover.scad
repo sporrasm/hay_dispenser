@@ -3,7 +3,7 @@ height = 53;
 depth = 15;
 pin_hole_radius = 13 / 2;
 mount_hole_radius = 1.7;
-lock_hole_radius = 4;
+lock_hole_radius = 5;
 hole_loc_x=37;
 $fn=128;
 
@@ -38,7 +38,7 @@ union() {
             rotate([0,90,0])
             cylinder(h = wall_thickness_z + 2, r = pin_hole_radius);
         }
-    translate([30,depth_total/2,height-1]) {
+    translate([31.5,depth_total/2,height-1]) {
         cylinder(h = wall_thickness_z+2, r=pin_hole_radius);
     }
     }
@@ -66,7 +66,7 @@ union() {
                 }
             }
         }
-        translate([hole_loc_x+wall_thickness_x,z,y]) {
+        translate([hole_loc_x+wall_thickness_x,z,y]) { // Lock cutout
             union() {
                 translate([-lock_hole_radius,-1,-1]) {
                     cube([2*lock_hole_radius,wall_thickness_z+2,extension_height-lock_hole_radius+1]);
