@@ -1,6 +1,6 @@
-width = 66.5;
+width = 68;
 height = 53;
-depth = 13.5;
+depth = 15;
 pin_hole_radius = 13 / 2;
 mount_hole_radius = 1.7;
 lock_hole_radius = 4;
@@ -8,9 +8,9 @@ hole_loc_x=37;
 $fn=128;
 
 diff_hole_y=24;
-wall_thickness_x = 10;
-wall_thickness_z = 10;
-wall_thickness_y = 10;
+wall_thickness_x = 3;
+wall_thickness_z = 3;
+wall_thickness_y = 3;
 extension_height = 20;
 
 width_total = width + 2*wall_thickness_x;
@@ -38,6 +38,9 @@ union() {
             rotate([0,90,0])
             cylinder(h = wall_thickness_z + 2, r = pin_hole_radius);
         }
+    translate([30,depth_total/2,height-1]) {
+        cylinder(h = wall_thickness_z+2, r=pin_hole_radius);
+    }
     }
     difference() { // Extension + monting holes
         z = depth_total-wall_thickness_z;
@@ -78,4 +81,5 @@ union() {
         }
     }
 }
+
 
