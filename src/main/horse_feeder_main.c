@@ -119,7 +119,7 @@ void init_i2c_interface(void)
 }
 
 
-void init_LCD() {
+void init_LCD(int i2c_inited) {
   ESP_LOGI(TAG, "Starting up LCD");
   struct LCD_config lcd_conf;
   lcd_conf.rows=LCD_ROWS;
@@ -133,7 +133,7 @@ void init_LCD() {
   lcd_conf.entrymode_flag=1;
   lcd_conf.shiftmode_flag=0;
 
-  LCD_init(LCD_ADDR, SDA_PIN, SCL_PIN, &lcd_conf);
+  LCD_init(LCD_ADDR, SDA_PIN, SCL_PIN, &lcd_conf, i2c_inited);
   LCD_clearScreen();
   LCD_home();
   LCD_writeStr("HorseFeeder 3000");
@@ -154,9 +154,10 @@ void app_main(void)
   }
   init_i2c_interface();
   init_output_controllers(LOCK_OUTPUT_ADDR);
+  int i2c_inited = 1;
 #ifdef CONFIG_LCD_ENABLED
   ESP_LOGI(TAG, "LCD configured through menuconfig! Initializing LCD.");
-  init_LCD();
+  init_LCD(i2c_inited);
 #endif
   int wifi_conn_stat=0;
   ESP_LOGI(TAG, "Initializing WiFi");
