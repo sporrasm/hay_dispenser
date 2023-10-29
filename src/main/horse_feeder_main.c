@@ -291,7 +291,7 @@ void pulseLock(void* param) {
   int lock_idx = 0;
   int idxToPin[NUM_LOCKS] = {8,4,2,1,128,64,32,16};
 #ifdef CONFIG_FEEDER_TESTMODE
-  offs = CONFIG_TESTMODE_INTERVAL*6;
+  offs = CONFIG_TESTMODE_INTERVAL*CONFIG_NUM_LOCKS;
 #else
   offs = 24*3600;
 #endif
